@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye Camileri Ansiklopedisi</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>&#9770; Türkiye Camileri Ansiklopedisi</h1>
+            <p class="subtitle">Türkiye'deki tarihi ve modern camileri keşfedin</p>
+        </div>
+    </header>
+
+    <main>
+        <section class="search-section">
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Cami adı ile ara... (örn: Sultanahmet)" />
+                    <button id="searchBtn" class="btn-search">Ara</button>
+                </div>
+                <div class="filter-row">
+                    <select id="cityFilter">
+                        <option value="">Tüm Şehirler</option>
+                    </select>
+                    <select id="periodFilter">
+                        <option value="">Tüm Dönemler</option>
+                        <option value="Osmanlı">Osmanlı Dönemi</option>
+                        <option value="Selçuklu">Selçuklu Dönemi</option>
+                        <option value="Cumhuriyet">Cumhuriyet Dönemi</option>
+                        <option value="Modern">Modern</option>
+                    </select>
+                    <button id="resetBtn" class="btn-reset">Sıfırla</button>
+                </div>
+                <div class="result-count" id="resultCount"></div>
+            </div>
+        </section>
+
+        <section class="content-section">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            <div class="list-container" id="mosqueList">
+                <!-- Cards will be injected here -->
+            </div>
+        </section>
+
+        <!-- Detail Modal -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" id="detailModal">
+                <button class="modal-close" id="modalClose">&times;</button>
+                <div class="modal-body" id="modalBody"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Türkiye Camileri Ansiklopedisi &copy; 2026 &mdash; Bilgi amaçlı hazırlanmıştır.</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="mosques.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
