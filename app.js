@@ -1595,6 +1595,11 @@ function getStreetTileUrl() {
 // Map Click and Marker Dragging Location Adjustment
 async function handleLocationAdjust(lat, lon) {
     state.coords = { lat, lon };
+    
+    // Synchronously snap UI user markers and Qibla lines immediately for zero-lag visual feedback!
+    updateUserMarker();
+    renderQibla();
+    
     setStatus('Konum ayarlanıyor');
     showToast('Konum haritadan güncelleniyor...');
 
@@ -1613,14 +1618,62 @@ async function handleLocationAdjust(lat, lon) {
 }
 
 function handleMarkerDrag(e) {
-    const position = e.target.getLatLng();
-    handleLocationAdjust(position.lat, position.lng);
+    let lat = e.target.getLatLng().lat;
+    let lon = e.target.getLatLng().lng;
+    
+    // Correct rotated Qibla map marker drag coordinates due to CSS rotation distortion
+    if (e.target._map === state.qiblaMap && state.qiblaRotation !== 0) {
+        const qiblaMapEl = document.getElementById('qiblaMap');
+        if (qiblaMapEl && e.originalEvent) {
+            const rect = qiblaMapEl.getBoundingClientRect();
+            const x = e.originalEvent.clientX - rect.left - rect.width / 2;
+            const y = e.originalEvent.clientY - rect.top - rect.height / 2;
+            
+            const alpha = -state.qiblaRotation * Math.PI / 180;
+            const rx = x * Math.cos(alpha) - y * Math.sin(alpha);
+            const ry = x * Math.sin(alpha) + y * Math.cos(alpha);
+            
+            const targetX = rx + rect.width / 2;
+            const targetY = ry + rect.height / 2;
+            
+            const corrected = state.qiblaMap.containerPointToLatLng([targetX, targetY]);
+            lat = corrected.lat;
+            lon = corrected.lng;
+        }
+    }
+    
+    handleLocationAdjust(lat, lon);
 }
 
 function handleMapClick(e) {
     // Avoid double triggering if user clicked a marker
     if (e.originalEvent?.defaultPrevented) return;
-    handleLocationAdjust(e.latlng.lat, e.latlng.lng);
+    
+    let lat = e.latlng.lat;
+    let lon = e.latlng.lng;
+    
+    // Correct rotated Qibla map click coordinates due to CSS rotation distortion
+    if (e.target === state.qiblaMap && state.qiblaRotation !== 0) {
+        const qiblaMapEl = document.getElementById('qiblaMap');
+        if (qiblaMapEl) {
+            const rect = qiblaMapEl.getBoundingClientRect();
+            const x = e.originalEvent.clientX - rect.left - rect.width / 2;
+            const y = e.originalEvent.clientY - rect.top - rect.height / 2;
+            
+            const alpha = -state.qiblaRotation * Math.PI / 180;
+            const rx = x * Math.cos(alpha) - y * Math.sin(alpha);
+            const ry = x * Math.sin(alpha) + y * Math.cos(alpha);
+            
+            const targetX = rx + rect.width / 2;
+            const targetY = ry + rect.height / 2;
+            
+            const corrected = state.qiblaMap.containerPointToLatLng([targetX, targetY]);
+            lat = corrected.lat;
+            lon = corrected.lng;
+        }
+    }
+    
+    handleLocationAdjust(lat, lon);
 }
 
 // Force Update Prayer Times directly from Diyanet API
