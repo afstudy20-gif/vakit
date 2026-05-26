@@ -909,7 +909,7 @@ function renderQibla() {
         state.qiblaOriginMarker = L.marker(origin, {
             icon: L.divIcon({
                 className: 'qibla-user-marker',
-                html: '<span style="display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#8b5cf6;color:#fff;border:3px solid #fff;box-shadow:0 4px 16px rgba(139,92,246,0.4);font-weight:900;">•</span>',
+                html: '<span style="display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#06b6d4;color:#fff;border:3px solid #fff;box-shadow:0 4px 16px rgba(6,182,212,0.4);font-weight:900;">•</span>',
                 iconSize: [34, 34],
                 iconAnchor: [17, 17]
             })
