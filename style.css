@@ -72,67 +72,102 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    padding: 16px 0 24px;
-    border-bottom: 1px solid var(--line);
+    gap: 20px;
+    padding: 14px 20px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface-glass);
     margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
-.topbar h1 {
-    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
-    line-height: 1.1;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    background: linear-gradient(135deg, var(--ink) 30%, var(--brand) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.95rem;
+    color: var(--muted);
 }
 
-.eyebrow {
+.topbar-date {
+    font-weight: 600;
+}
+
+.topbar-clock {
     color: var(--brand);
-    font-size: 0.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 10px rgba(223, 177, 38, 0.2);
+}
+
+.topbar-location {
+    color: var(--ink);
     font-weight: 800;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    background: var(--surface-soft);
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(223, 177, 38, 0.15);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.weather-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.weather-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 5px 10px;
+    min-width: 56px;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.weather-slot:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-active);
+    box-shadow: var(--shadow-active);
+}
+
+.weather-slot-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.weather-slot-temp {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1;
+}
+
+.weather-slot-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-top: 1px;
 }
 
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.header-weather {
-    display: inline-flex;
-    height: 40px;
-    align-items: center;
     gap: 8px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--surface-glass);
-    padding: 6px 12px;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
-
-.weather-symbol {
-    display: grid;
-    width: 26px;
-    height: 26px;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--brand-soft);
-    color: var(--brand);
-    font-size: 1.1rem;
-    font-weight: 900;
-}
-
-.weather-temp {
-    font-size: 1rem;
-    font-weight: 800;
 }
 
 .sync-status {
@@ -198,7 +233,7 @@ a {
     transform: scale(0.97);
 }
 
-.refresh-app-btn.spinning span:first-child {
+.refresh-app-btn.spinning {
     animation: spin 0.8s linear infinite;
 }
 
@@ -1173,14 +1208,45 @@ select:disabled {
         gap: 12px;
     }
 
-    .topbar-actions {
-        justify-content: space-between;
+    .topbar-left {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 12px;
+        font-size: 0.88rem;
     }
 
-    .header-weather,
+    .topbar-location {
+        padding: 2px 6px;
+    }
+
+    .topbar-right {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        align-items: center;
+    }
+
+    .weather-strip {
+        justify-content: center;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .weather-slot {
+        min-width: 48px;
+        padding: 4px 6px;
+    }
+
+    .topbar-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
     .sync-status,
     .refresh-app-btn {
-        flex: 1;
+        flex: unset;
     }
 
     .app-tabs {
@@ -1195,13 +1261,8 @@ select:disabled {
         grid-template-columns: 1fr;
     }
 
-    .weather-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-
     .location-panel,
     .prayer-panel,
-    .weather-panel,
     .mosque-panel,
     .qibla-panel {
         padding: 16px;

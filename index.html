@@ -20,21 +20,20 @@
 <body>
     <div class="app-shell">
         <header class="topbar">
-            <div>
-                <p class="eyebrow">Diyanet kaynaklı vakitler</p>
-                <h1>Vakit ve Cami</h1>
+            <div class="topbar-left">
+                <span class="topbar-date" id="topbarDate">--</span>
+                <span class="topbar-clock" id="currentClock">--:--:--</span>
+                <span class="topbar-location" id="topbarLocation">--</span>
             </div>
-            <div class="topbar-actions">
-                <div class="header-weather" id="headerWeather" aria-live="polite">
-                    <span class="weather-symbol">--</span>
-                    <span class="weather-text">Hava bekleniyor</span>
+            <div class="topbar-right">
+                <div class="weather-strip" id="headerWeather" aria-live="polite">
+                    <!-- Dynamic weather slots will go here -->
                 </div>
-                <span class="sync-status" id="syncStatus">Hazırlanıyor</span>
-                <button class="refresh-app-btn" id="appRefreshBtn" type="button" title="Cache temizle ve uygulamayı güncelle">
-                    <span>↻</span>
-                    <span>Güncelle</span>
-                </button>
-                <button class="icon-button" id="installBtn" type="button" title="Uygulamayı yükle" hidden>+</button>
+                <div class="topbar-actions">
+                    <span class="sync-status" id="syncStatus">Hazırlanıyor</span>
+                    <button class="refresh-app-btn" id="appRefreshBtn" type="button" title="Cache temizle ve uygulamayı güncelle">↻</button>
+                    <button class="icon-button" id="installBtn" type="button" title="Uygulamayı yükle" hidden>+</button>
+                </div>
             </div>
         </header>
 
@@ -81,21 +80,10 @@
                 </div>
 
                 <div class="time-row">
-                    <span id="currentClock">--:--</span>
                     <span id="prayerDate">Vakitler bekleniyor</span>
                 </div>
 
                 <div class="prayer-grid" id="prayerGrid"></div>
-            </section>
-
-            <section class="weather-panel tab-panel" data-tab-panel="vakit">
-                <div class="panel-heading compact">
-                    <div>
-                        <h2>Saatlik ve Günlük Hava Tahmini</h2>
-                        <p id="weatherSummary">Saatlik ve 3 günlük hava durumu tahmini.</p>
-                    </div>
-                </div>
-                <div class="weather-grid" id="weatherGrid"></div>
             </section>
 
             <section class="mosque-panel tab-panel" id="camiler" data-tab-panel="camiler" hidden>

@@ -84,8 +84,8 @@ function cacheDom() {
     el.nextPrayerName = document.getElementById('nextPrayerName');
     el.countdown = document.getElementById('countdown');
     el.prayerGrid = document.getElementById('prayerGrid');
-    el.weatherSummary = document.getElementById('weatherSummary');
-    el.weatherGrid = document.getElementById('weatherGrid');
+    el.topbarDate = document.getElementById('topbarDate');
+    el.topbarLocation = document.getElementById('topbarLocation');
     el.mosqueSummary = document.getElementById('mosqueSummary');
     el.mosqueList = document.getElementById('mosqueList');
     el.nearestRouteBtn = document.getElementById('nearestRouteBtn');
@@ -127,6 +127,7 @@ function bindEvents() {
         if (!district) return;
         state.selected.districtId = district.IlceID;
         state.selected.districtName = district.IlceAdi;
+        state.selected.localityName = '';
         await applyManualSelection();
     });
 
@@ -284,6 +285,7 @@ async function restoreOrDefaultLocation() {
     el.citySelect.value = city.SehirID;
     await loadDistricts(city.SehirID, location.districtId);
     state.coords = location.coords || DEFAULT_LOCATION.coords;
+    state.selected.localityName = location.localityName || '';
     updateLocationSummary(saved ? 'Kayıtlı seçim' : 'Varsayılan seçim');
 }
 
@@ -350,6 +352,9 @@ async function matchLocationToDistrict() {
         state.selected.districtName = district.IlceAdi;
         el.districtSelect.value = district.IlceID;
     }
+
+    // Set locality name from reverse geocoding
+    state.selected.localityName = reverse.locality || reverse.city || (district ? district.IlceAdi : '');
 }
 
 async function updateAll() {
@@ -455,7 +460,7 @@ async function loadWeather() {
     } catch (error) {
         weather = readDataCache(`weather:${formatCoord(state.coords.lat)}:${formatCoord(state.coords.lon)}`) || readDataCache('weather:last');
         if (!weather) {
-            el.weatherSummary.textContent = 'Çevrimdışı hava kaydı yok.';
+            el.headerWeather.innerHTML = '<span class="weather-error">Hava bekleniyor...</span>';
             return;
         }
         showToast('Hava durumu son kayıtla gösteriliyor.');
@@ -484,51 +489,24 @@ async function loadWeather() {
         }
     }
 
-    el.weatherSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} için saatlik ve 3 günlük hava tahmini`;
-    renderHeaderWeather(hours[0]);
-
-    // Hourly cards HTML
-    const hourlyHtml = hours.map(hour => `
-        <div class="weather-card hourly-card" aria-label="${formatHour(hour.time)} ${weatherLabel(hour.code)}, ${Math.round(hour.temp)} derece">
-            <span class="weather-card-type">SAATLİK · ${formatHour(hour.time)}</span>
-            <div class="weather-visual">
-                <div class="weather-large-icon">${weatherIcon(hour.code)}</div>
-                <strong>${Math.round(hour.temp)}°</strong>
-            </div>
-            <div class="weather-metrics">
-                <span title="Yağış">☂ ${hour.rain ?? 0}%</span>
-                <span title="Rüzgar">⇢ ${Math.round(hour.wind ?? 0)}</span>
-            </div>
+    // Render 6 slots: 3 hourly first, then 3 daily
+    const hourlySlotsHtml = hours.map(hour => `
+        <div class="weather-slot" aria-label="Saat ${formatHour(hour.time)}: ${weatherLabel(hour.code)}, ${Math.round(hour.temp)} derece">
+            <span class="weather-slot-icon">${weatherIcon(hour.code)}</span>
+            <span class="weather-slot-temp">${Math.round(hour.temp)}°</span>
+            <span class="weather-slot-label">${formatHour(hour.time)}</span>
         </div>
     `).join('');
 
-    // Daily cards HTML
-    const dailyHtml = days.map(day => `
-        <div class="weather-card daily-card" aria-label="${formatDayName(day.time)} ${weatherLabel(day.code)}, en yüksek ${Math.round(day.tempMax)}, en düşük ${Math.round(day.tempMin)} derece">
-            <span class="weather-card-type">GÜNLÜK · ${formatDayName(day.time)}</span>
-            <div class="weather-visual">
-                <div class="weather-large-icon">${weatherIcon(day.code)}</div>
-                <div class="weather-range">
-                    <strong class="max-temp">${Math.round(day.tempMax)}°</strong>
-                    <span class="min-temp">${Math.round(day.tempMin)}°</span>
-                </div>
-            </div>
-            <div class="weather-metrics">
-                <span title="Maksimum Yağış">☂ ${day.rain ?? 0}%</span>
-            </div>
+    const dailySlotsHtml = days.map(day => `
+        <div class="weather-slot" aria-label="${formatDayName(day.time)}: ${weatherLabel(day.code)}, en yüksek ${Math.round(day.tempMax)} derece">
+            <span class="weather-slot-icon">${weatherIcon(day.code)}</span>
+            <span class="weather-slot-temp">${Math.round(day.tempMax)}°</span>
+            <span class="weather-slot-label">${formatDayShort(day.time)}</span>
         </div>
     `).join('');
 
-    el.weatherGrid.innerHTML = hourlyHtml + dailyHtml;
-}
-
-function renderHeaderWeather(hour) {
-    if (!hour) return;
-    el.headerWeather.setAttribute('aria-label', `${weatherLabel(hour.code)}, ${Math.round(hour.temp)} derece`);
-    el.headerWeather.innerHTML = `
-        <span class="weather-symbol">${weatherIcon(hour.code)}</span>
-        <span class="weather-temp">${Math.round(hour.temp)}°</span>
-    `;
+    el.headerWeather.innerHTML = hourlySlotsHtml + dailySlotsHtml;
 }
 
 async function loadNearbyMosques() {
@@ -979,11 +957,16 @@ function parseTimeOnDate(date, timeText) {
 
 function startClock() {
     const tick = () => {
+        const now = new Date();
         el.currentClock.textContent = new Intl.DateTimeFormat('tr-TR', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit'
-        }).format(new Date());
+        }).format(now);
+
+        const dayName = new Intl.DateTimeFormat('tr-TR', { weekday: 'long' }).format(now);
+        el.topbarDate.textContent = `${dayName}, ${now.getDate()}.${now.getMonth() + 1}.${now.getFullYear()}`;
+
         updateCountdown();
         if (state.nextPrayer && state.nextPrayer.date <= new Date()) {
             updateNextPrayer();
@@ -1091,12 +1074,15 @@ function saveLocation() {
         districtId: state.selected.districtId,
         cityName: state.selected.cityName,
         districtName: state.selected.districtName,
-        coords: state.coords
+        coords: state.coords,
+        localityName: state.selected.localityName || ''
     }));
 }
 
 function updateLocationSummary(prefix) {
     el.locationSummary.textContent = `${prefix}: ${titleCase(state.selected.cityName)} / ${titleCase(state.selected.districtName)}`;
+    const rawLoc = state.selected.localityName || state.selected.districtName || state.selected.cityName || 'Konum Bilinmiyor';
+    el.topbarLocation.textContent = titleCase(rawLoc);
 }
 
 function setStatus(text) {
@@ -1181,6 +1167,11 @@ function formatDayName(value) {
     return new Intl.DateTimeFormat('tr-TR', { weekday: 'long' }).format(date);
 }
 
+function formatDayShort(value) {
+    const date = new Date(value);
+    return new Intl.DateTimeFormat('tr-TR', { weekday: 'short' }).format(date);
+}
+
 function formatCoord(value) {
     return Number(value).toFixed(3);
 }
@@ -1211,14 +1202,14 @@ function weatherLabel(code) {
 }
 
 function weatherIcon(code) {
-    if (code === 0) return '☀';
-    if ([1, 2].includes(code)) return '◐';
-    if (code === 3) return '☁';
-    if ([45, 48].includes(code)) return '≋';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '☂';
-    if ([71, 73, 75].includes(code)) return '✳';
-    if (code === 95) return 'ϟ';
-    return '◌';
+    if (code === 0) return '☀️';
+    if ([1, 2].includes(code)) return '⛅';
+    if (code === 3) return '☁️';
+    if ([45, 48].includes(code)) return '🌫️';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '🌧️';
+    if ([71, 73, 75].includes(code)) return '❄️';
+    if (code === 95) return '⛈️';
+    return '🌤️';
 }
 
 function distanceMeters(lat1, lon1, lat2, lon2) {
