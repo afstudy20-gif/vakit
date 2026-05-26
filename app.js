@@ -842,15 +842,19 @@ function normalizeMosqueName(value) {
 
 function renderMosques() {
     const searchUrl = `https://www.google.com/maps/search/cami/@${state.coords.lat},${state.coords.lon},15z`;
+    const embedUrl = googleMapsEmbedUrl();
 
     if (state.nearestMosques.length === 0) {
         el.mosqueSummary.textContent = 'Yakın cami bulunamadı.';
         el.nearestRouteBtn.setAttribute('aria-disabled', 'true');
         el.mosqueList.innerHTML = `
             <div class="empty-state">
-                <p>Bu konum için yakın cami veya mescit bulunamadı (OpenStreetMap verileri eksik olabilir).</p>
+                <p>Yerel listede ve OpenStreetMap'te yakın cami bulunamadı. Google Haritalar araması aşağıda gömülü olarak gösteriliyor.</p>
+                <div class="google-maps-embed-wrapper">
+                    <iframe src="${embedUrl}" title="Google Haritalar cami araması" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
                 <a class="google-maps-search-btn" href="${searchUrl}" target="_blank" rel="noopener noreferrer" style="margin-top: 12px;">
-                    🔍 Google Haritalar'da Canlı Cami Ara
+                    Google Haritalar'da Aç
                 </a>
             </div>
         `;
@@ -875,9 +879,12 @@ function renderMosques() {
 
     const googleSearchCard = `
         <div class="google-maps-integration-card">
-            <p>Aradığınız küçük mescit veya cami listede yok mu?</p>
+            <p>Google Haritalar yakın cami araması</p>
+            <div class="google-maps-embed-wrapper">
+                <iframe src="${embedUrl}" title="Google Haritalar cami araması" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
             <a class="google-maps-search-btn" href="${searchUrl}" target="_blank" rel="noopener noreferrer">
-                🔍 Google Haritalar'da Canlı Cami Ara
+                Google Haritalar'da Aç
             </a>
         </div>
     `;
@@ -1397,6 +1404,11 @@ function directionsUrl(mosque) {
 
 function mapsSearchUrl(mosque) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${mosque.name} ${mosque.lat},${mosque.lon}`)}`;
+}
+
+function googleMapsEmbedUrl() {
+    const query = encodeURIComponent(`cami near ${state.coords.lat},${state.coords.lon}`);
+    return `https://maps.google.com/maps?q=${query}&ll=${state.coords.lat},${state.coords.lon}&z=15&output=embed`;
 }
 
 function escapeHtml(value) {
