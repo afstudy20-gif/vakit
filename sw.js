@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vakit-cami-v27';
+const CACHE_NAME = 'vakit-cami-v28';
 const APP_SHELL = [
     './',
     './index.html',

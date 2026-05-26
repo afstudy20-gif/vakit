@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=27">
+    <link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
     <div class="app-shell">
@@ -100,8 +100,6 @@
                     <input id="turkeySearchInput" type="search" placeholder="Türkiye genelinde cami veya mescit ara">
                     <button class="secondary-button" id="turkeySearchBtn" type="button">Türkiye'de Ara</button>
                     <button class="secondary-button" id="nearbySearchBtn" type="button">Yakınıma Dön</button>
-                    <input id="googlePlacesApiKeyInput" type="password" placeholder="Google Places API anahtarı">
-                    <button class="secondary-button" id="googlePlacesApiKeySaveBtn" type="button">Kaydet</button>
                 </div>
                 <div class="map-layout">
                     <div class="map-container-relative">
@@ -180,12 +178,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="vendor/leaflet/leaflet.js"></script>
-    <script>
-        window.VAKIT_CONFIG = window.VAKIT_CONFIG || {
-            googlePlacesApiKey: ''
-        };
-    </script>
-    <script src="mosques.js?v=27"></script>
-    <script src="app.js?v=27"></script>
+    <script src="mosques.js?v=28"></script>
+    <script src="app.js?v=28"></script>
 </body>
 </html>

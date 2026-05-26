@@ -1320,7 +1320,7 @@ select:disabled {
 /* Turkey Search */
 .turkey-search {
     display: grid;
-    grid-template-columns: minmax(200px, 1fr) auto auto minmax(200px, .45fr) auto;
+    grid-template-columns: minmax(200px, 1fr) auto auto;
     gap: 10px;
     margin-bottom: 16px;
     background: var(--surface-soft);
@@ -1356,12 +1356,6 @@ select:disabled {
 .kaaba-marker span:hover,
 .user-map-marker span:hover {
     transform: scale(1.15);
-}
-
-@media (max-width: 1180px) {
-    .turkey-search {
-        grid-template-columns: minmax(200px, 1fr) auto auto;
-    }
 }
 
 /* General Extras */
