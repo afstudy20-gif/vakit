@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=17">
+    <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
     <div class="app-shell">
@@ -118,23 +118,14 @@
                     <button class="primary-button" id="qiblaGeoBtn" type="button">Konumumu Yenile</button>
                 </div>
                 <div class="qibla-layout">
-                    <div class="map-container-relative qibla-map-wrapper">
-                        <div id="qiblaMap" aria-label="Kâbe yönü haritası"></div>
-                        <div class="qibla-zoom-controls">
-                            <button type="button" class="qibla-zoom-btn" id="qiblaZoomInBtn" title="Yakınlaştır">+</button>
-                            <button type="button" class="qibla-zoom-btn" id="qiblaZoomOutBtn" title="Uzaklaştır">-</button>
+                    <div class="qibla-map-column">
+                        <div class="map-container-relative qibla-map-wrapper">
+                            <div id="qiblaMap" aria-label="Kâbe yönü haritası"></div>
+                            <div class="qibla-zoom-controls">
+                                <button type="button" class="qibla-zoom-btn" id="qiblaZoomInBtn" title="Yakınlaştır">+</button>
+                                <button type="button" class="qibla-zoom-btn" id="qiblaZoomOutBtn" title="Uzaklaştır">-</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="qibla-card">
-                        <div class="qibla-compass">
-                            <div class="qibla-arrow" id="qiblaArrow">☾</div>
-                        </div>
-                        <div class="qibla-metrics-box">
-                            <span>Kıble Açısı</span>
-                            <strong id="qiblaBearing">--°</strong>
-                            <p id="qiblaDistance">Mesafe hesaplanıyor</p>
-                        </div>
-                        <hr class="card-divider">
                         <div class="qibla-rotation-group">
                             <span class="rotation-label">Harita Yönünü Döndür</span>
                             <div class="rotation-slider-row">
@@ -148,6 +139,16 @@
                             </div>
                         </div>
                     </div>
+                    <div class="qibla-card">
+                        <div class="qibla-compass">
+                            <div class="qibla-arrow" id="qiblaArrow">☾</div>
+                        </div>
+                        <div class="qibla-metrics-box">
+                            <span>Kıble Açısı</span>
+                            <strong id="qiblaBearing">--°</strong>
+                            <p id="qiblaDistance">Mesafe hesaplanıyor</p>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
@@ -157,6 +158,6 @@
 
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="mosques.js"></script>
-    <script src="app.js?v=17"></script>
+    <script src="app.js?v=18"></script>
 </body>
 </html>
