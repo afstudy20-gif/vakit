@@ -1,5 +1,8 @@
 .git
 .claude
+node_modules
+.DS_Store
+*.log
 .dockerignore
 Dockerfile
 README.md
