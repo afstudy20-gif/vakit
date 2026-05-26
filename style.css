@@ -1651,3 +1651,32 @@ select:disabled {
         border-color: var(--accent) !important;
     }
 }
+
+/* Visitor Map Widget Wrapper */
+.visitor-map-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 32px auto 0;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.visitor-map-container:hover {
+    border-color: var(--line-active);
+    box-shadow: var(--shadow-active);
+}
+
+.visitor-map-container img,
+.visitor-map-container iframe,
+.visitor-map-container a {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 8px;
+}
