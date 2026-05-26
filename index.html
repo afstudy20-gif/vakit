@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=16">
+    <link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
     <div class="app-shell">
@@ -120,6 +120,10 @@
                 <div class="qibla-layout">
                     <div class="map-container-relative qibla-map-wrapper">
                         <div id="qiblaMap" aria-label="Kâbe yönü haritası"></div>
+                        <div class="qibla-zoom-controls">
+                            <button type="button" class="qibla-zoom-btn" id="qiblaZoomInBtn" title="Yakınlaştır">+</button>
+                            <button type="button" class="qibla-zoom-btn" id="qiblaZoomOutBtn" title="Uzaklaştır">-</button>
+                        </div>
                     </div>
                     <div class="qibla-card">
                         <div class="qibla-compass">
@@ -153,6 +157,6 @@
 
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="mosques.js"></script>
-    <script src="app.js?v=16"></script>
+    <script src="app.js?v=17"></script>
 </body>
 </html>

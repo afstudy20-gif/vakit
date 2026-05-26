@@ -127,6 +127,8 @@ function cacheDom() {
     el.rotateRightBtn = document.getElementById('rotateRightBtn');
     el.alignQiblaBtn = document.getElementById('alignQiblaBtn');
     el.resetRotationBtn = document.getElementById('resetRotationBtn');
+    el.qiblaZoomInBtn = document.getElementById('qiblaZoomInBtn');
+    el.qiblaZoomOutBtn = document.getElementById('qiblaZoomOutBtn');
 }
 
 function bindEvents() {
@@ -208,6 +210,16 @@ function bindEvents() {
             el.qiblaMapRotation.value = 0;
             setQiblaRotation(0);
             showToast('Pusula yönü kuzeye sıfırlandı.');
+        });
+    }
+    if (el.qiblaZoomInBtn) {
+        el.qiblaZoomInBtn.addEventListener('click', () => {
+            if (state.qiblaMap) state.qiblaMap.zoomIn();
+        });
+    }
+    if (el.qiblaZoomOutBtn) {
+        el.qiblaZoomOutBtn.addEventListener('click', () => {
+            if (state.qiblaMap) state.qiblaMap.zoomOut();
         });
     }
 }
@@ -845,12 +857,8 @@ function initQiblaMap() {
         maxZoom: 19,
         dragging: false,
         scrollWheelZoom: true,
-        touchZoom: true
-    });
-
-    state.qiblaStreetTile = L.tileLayer(getStreetTileUrl(), {
-        maxZoom: 19,
-        attribution: '&copy; CartoDB'
+        touchZoom: true,
+        zoomControl: false
     });
 
     const satelliteTile = L.tileLayer(SATELLITE_TILE_URL, {
@@ -858,13 +866,7 @@ function initQiblaMap() {
         attribution: '&copy; Esri World Imagery'
     });
 
-    const baseLayers = {
-        "Harita (Sokak)": state.qiblaStreetTile,
-        "Uydu Görüntüsü": satelliteTile
-    };
-
-    state.qiblaStreetTile.addTo(state.qiblaMap);
-    L.control.layers(baseLayers, null, { position: 'topright' }).addTo(state.qiblaMap);
+    satelliteTile.addTo(state.qiblaMap);
 }
 
 function renderQibla() {

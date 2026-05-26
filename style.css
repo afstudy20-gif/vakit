@@ -910,6 +910,46 @@ select:disabled {
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+.qibla-zoom-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+}
+
+.qibla-zoom-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.qibla-zoom-btn:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+    background: var(--surface);
+    transform: scale(1.05);
+}
+
+.qibla-zoom-btn:active {
+    transform: scale(0.95);
+}
+
+
 .qibla-card {
     display: grid;
     align-content: start;
