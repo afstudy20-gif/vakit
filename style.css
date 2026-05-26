@@ -1680,3 +1680,24 @@ select:disabled {
     height: auto !important;
     border-radius: 8px;
 }
+
+/* Diyanet Sync Button */
+#syncPrayersBtn {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    font-weight: 800;
+    margin-left: auto; /* Push to right on desktop */
+}
+
+@media (max-width: 620px) {
+    #syncPrayersBtn {
+        width: 100% !important;
+        justify-content: center !important;
+        margin: 6px 0 0 0 !important;
+    }
+}

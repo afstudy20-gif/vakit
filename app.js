@@ -134,6 +134,7 @@ function cacheDom() {
     el.autoCompassBtn = document.getElementById('autoCompassBtn');
     el.compassRose = document.getElementById('compassRose');
     el.qiblaCompassDial = document.getElementById('qiblaCompassDial');
+    el.syncPrayersBtn = document.getElementById('syncPrayersBtn');
 }
 
 function bindEvents() {
@@ -234,6 +235,9 @@ function bindEvents() {
         el.qiblaZoomOutBtn.addEventListener('click', () => {
             if (state.qiblaMap) state.qiblaMap.zoomOut();
         });
+    }
+    if (el.syncPrayersBtn) {
+        el.syncPrayersBtn.addEventListener('click', forceUpdatePrayerTimes);
     }
 }
 
@@ -1617,4 +1621,42 @@ function handleMapClick(e) {
     // Avoid double triggering if user clicked a marker
     if (e.originalEvent?.defaultPrevented) return;
     handleLocationAdjust(e.latlng.lat, e.latlng.lng);
+}
+
+// Force Update Prayer Times directly from Diyanet API
+async function forceUpdatePrayerTimes() {
+    const btn = el.syncPrayersBtn;
+    if (!btn) return;
+
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Güncelleniyor...';
+    setStatus('Diyanet güncelleniyor');
+    showToast("Namaz vakitleri Diyanet'ten canlı güncelleniyor...");
+
+    try {
+        const cacheKey = `prayers:${state.selected.districtId}`;
+        const url = `${PRAYER_API}/vakitler/${state.selected.districtId}`;
+        
+        // Force fetch directly from Diyanet API
+        const data = await fetchJson(url);
+        
+        // Write the fresh data back to the local cache
+        writeDataCache(cacheKey, data);
+        
+        // Update the state and UI
+        state.prayerDays = data;
+        state.todayPrayer = pickPrayerDay(state.prayerDays);
+        renderPrayerTimes();
+        updateNextPrayer();
+        
+        showToast('Namaz vakitleri başarıyla güncellendi!');
+    } catch (error) {
+        console.error(error);
+        showToast("Diyanet API bağlantı hatası. İnternetinizi kontrol edin.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        setStatus('Güncel');
+    }
 }
