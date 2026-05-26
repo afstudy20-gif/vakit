@@ -259,12 +259,26 @@ function initMap() {
         attribution: '&copy; Esri World Imagery'
     });
 
+    const googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
+    });
+
+    const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
+    });
+
     const baseLayers = {
-        "Harita (Sokak)": state.streetTile,
-        "Uydu Görüntüsü": satelliteTile
+        "Google Harita (Sokak)": googleStreets,
+        "Google Uydu (Hibrit)": googleHybrid,
+        "Tema Haritası (Sokak)": state.streetTile,
+        "Standart Uydu (Esri)": satelliteTile
     };
 
-    state.streetTile.addTo(state.map);
+    googleStreets.addTo(state.map);
     L.control.layers(baseLayers, null, { position: 'topright' }).addTo(state.map);
 
     state.markerLayer = L.layerGroup().addTo(state.map);
@@ -795,10 +809,19 @@ function normalizeMosqueName(value) {
 }
 
 function renderMosques() {
+    const searchUrl = `https://www.google.com/maps/search/cami/@${state.coords.lat},${state.coords.lon},15z`;
+
     if (state.nearestMosques.length === 0) {
         el.mosqueSummary.textContent = 'Yakın cami bulunamadı.';
         el.nearestRouteBtn.setAttribute('aria-disabled', 'true');
-        el.mosqueList.innerHTML = '<div class="empty-state">Bu konum için yakın cami bulunamadı. Google Maps aramasıyla devam edebilirsiniz.</div>';
+        el.mosqueList.innerHTML = `
+            <div class="empty-state">
+                <p>Bu konum için yakın cami veya mescit bulunamadı (OpenStreetMap verileri eksik olabilir).</p>
+                <a class="google-maps-search-btn" href="${searchUrl}" target="_blank" rel="noopener noreferrer" style="margin-top: 12px;">
+                    🔍 Google Haritalar'da Canlı Cami Ara
+                </a>
+            </div>
+        `;
         return;
     }
 
@@ -807,7 +830,7 @@ function renderMosques() {
     el.nearestRouteBtn.href = directionsUrl(nearest);
     el.nearestRouteBtn.setAttribute('aria-disabled', 'false');
 
-    el.mosqueList.innerHTML = state.nearestMosques.map(mosque => `
+    const mosqueCardsHtml = state.nearestMosques.map(mosque => `
         <article class="mosque-item">
             <h3>${escapeHtml(mosque.name)}</h3>
             <p>${escapeHtml(mosque.source)} · ${formatDistance(mosque.distance)}</p>
@@ -817,6 +840,17 @@ function renderMosques() {
             </div>
         </article>
     `).join('');
+
+    const googleSearchCard = `
+        <div class="google-maps-integration-card">
+            <p>Aradığınız küçük mescit veya cami listede yok mu?</p>
+            <a class="google-maps-search-btn" href="${searchUrl}" target="_blank" rel="noopener noreferrer">
+                🔍 Google Haritalar'da Canlı Cami Ara
+            </a>
+        </div>
+    `;
+
+    el.mosqueList.innerHTML = mosqueCardsHtml + googleSearchCard;
 }
 
 function renderMosqueMarkers() {
@@ -879,12 +913,13 @@ function initQiblaMap() {
         zoomControl: false
     });
 
-    const satelliteTile = L.tileLayer(SATELLITE_TILE_URL, {
-        maxZoom: 19,
-        attribution: '&copy; Esri World Imagery'
+    const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
     });
 
-    satelliteTile.addTo(state.qiblaMap);
+    googleHybrid.addTo(state.qiblaMap);
     setQiblaRotation(0);
     state.qiblaMap.on('click', handleMapClick);
 }
