@@ -1711,24 +1711,31 @@ select:disabled {
 }
 
 /* Visitor Map Widget Wrapper */
-.visitor-map-container {
+.visitor-map-wrapper {
     display: flex;
     justify-content: center;
-    align-items: center;
-    width: 220px; /* Shrunk to 1/5th or extremely compact size */
-    margin: 32px auto 0;
-    padding: 10px;
+    margin: 24px auto 0;
+    width: 160px;
+    height: 90px;
+    overflow: hidden;
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: 12px;
     box-shadow: var(--shadow);
-    overflow: hidden;
     transition: all 0.3s ease;
 }
 
-.visitor-map-container:hover {
+.visitor-map-wrapper:hover {
     border-color: var(--line-active);
     box-shadow: var(--shadow-active);
+}
+
+.visitor-map-container {
+    transform: scale(0.2);
+    transform-origin: top center;
+    width: 800px;
+    pointer-events: none;
+    opacity: 0.85;
 }
 
 .visitor-map-container img,
@@ -1736,7 +1743,6 @@ select:disabled {
 .visitor-map-container a {
     max-width: 100% !important;
     height: auto !important;
-    border-radius: 8px;
 }
 
 /* Diyanet Sync Button */
