@@ -1228,15 +1228,26 @@ select:disabled {
     }
 
     .weather-strip {
-        justify-content: center;
+        display: flex;
+        align-items: center;
+        gap: 6px;
         width: 100%;
-        flex-wrap: wrap;
-        gap: 5px;
+        overflow-x: auto;
+        padding: 4px 8px;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .weather-strip::-webkit-scrollbar {
+        display: none;
     }
 
     .weather-slot {
-        min-width: 48px;
-        padding: 4px 6px;
+        flex: 0 0 auto;
+        min-width: 56px;
+        padding: 5px 8px;
     }
 
     .topbar-actions {

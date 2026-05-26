@@ -58,15 +58,29 @@ const el = {};
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    cacheDom();
-    bindEvents();
-    initMap();
-    startClock();
-    await registerServiceWorker();
-    await loadCities();
-    await restoreOrDefaultLocation();
-    applyInitialTab();
-    updateAll();
+    try {
+        cacheDom();
+        bindEvents();
+        initMap();
+        startClock();
+    } catch (error) {
+        console.error('Kritik senkron başlatma hatası:', error);
+    }
+
+    try {
+        await registerServiceWorker();
+    } catch (error) {
+        console.warn('Servis işçisi kaydı atlandı:', error);
+    }
+
+    try {
+        await loadCities();
+        await restoreOrDefaultLocation();
+        applyInitialTab();
+        await updateAll();
+    } catch (error) {
+        console.error('Kritik asenkron yükleme hatası:', error);
+    }
 }
 
 function cacheDom() {
@@ -285,6 +299,9 @@ async function restoreOrDefaultLocation() {
     el.citySelect.value = city.SehirID;
     await loadDistricts(city.SehirID, location.districtId);
     state.coords = location.coords || DEFAULT_LOCATION.coords;
+    if (!state.coords || typeof state.coords.lat !== 'number' || typeof state.coords.lon !== 'number' || isNaN(state.coords.lat) || isNaN(state.coords.lon)) {
+        state.coords = { ...DEFAULT_LOCATION.coords };
+    }
     state.selected.localityName = location.localityName || '';
     updateLocationSummary(saved ? 'Kayıtlı seçim' : 'Varsayılan seçim');
 }

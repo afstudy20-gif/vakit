@@ -44,10 +44,26 @@
         </nav>
 
         <main class="dashboard">
-            <section class="location-panel">
+            <section class="prayer-panel tab-panel" data-tab-panel="vakit">
+                <div class="next-prayer">
+                    <div>
+                        <p class="eyebrow">Sıradaki vakit</p>
+                        <h2 id="nextPrayerName">-</h2>
+                    </div>
+                    <div class="countdown" id="countdown">--:--:--</div>
+                </div>
+
+                <div class="time-row">
+                    <span id="prayerDate">Vakitler bekleniyor</span>
+                </div>
+
+                <div class="prayer-grid" id="prayerGrid"></div>
+            </section>
+
+            <section class="location-panel tab-panel" data-tab-panel="vakit">
                 <div class="panel-heading">
                     <div>
-                        <h2>Konum</h2>
+                        <h2>Konum Ayarları</h2>
                         <p id="locationSummary">İl ve ilçe seçin veya konum izni verin.</p>
                     </div>
                     <button class="primary-button" id="geoBtn" type="button">Konumumu Kullan</button>
@@ -68,22 +84,6 @@
                     </label>
                     <button class="secondary-button" id="refreshBtn" type="button">Güncelle</button>
                 </div>
-            </section>
-
-            <section class="prayer-panel tab-panel" data-tab-panel="vakit">
-                <div class="next-prayer">
-                    <div>
-                        <p class="eyebrow">Sıradaki vakit</p>
-                        <h2 id="nextPrayerName">-</h2>
-                    </div>
-                    <div class="countdown" id="countdown">--:--:--</div>
-                </div>
-
-                <div class="time-row">
-                    <span id="prayerDate">Vakitler bekleniyor</span>
-                </div>
-
-                <div class="prayer-grid" id="prayerGrid"></div>
             </section>
 
             <section class="mosque-panel tab-panel" id="camiler" data-tab-panel="camiler" hidden>
