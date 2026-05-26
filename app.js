@@ -184,14 +184,14 @@ function bindEvents() {
     }
     if (el.rotateLeftBtn) {
         el.rotateLeftBtn.addEventListener('click', () => {
-            const next = (state.qiblaRotation - 15 + 360) % 360;
+            const next = (state.qiblaRotation - 2 + 360) % 360;
             el.qiblaMapRotation.value = next;
             setQiblaRotation(next);
         });
     }
     if (el.rotateRightBtn) {
         el.rotateRightBtn.addEventListener('click', () => {
-            const next = (state.qiblaRotation + 15) % 360;
+            const next = (state.qiblaRotation + 2) % 360;
             el.qiblaMapRotation.value = next;
             setQiblaRotation(next);
         });
