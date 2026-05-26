@@ -1358,7 +1358,7 @@ function setQiblaRotation(deg) {
     state.qiblaRotation = deg;
     const mapPane = document.querySelector('#qiblaMap .leaflet-map-pane');
     if (mapPane) {
-        mapPane.style.transform = `rotate(${deg}deg)`;
+        mapPane.style.transform = `rotate(${deg}deg) scale(1.42)`;
     }
 }
 
