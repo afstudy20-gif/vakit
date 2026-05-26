@@ -50,7 +50,9 @@ const state = {
     nearestMosques: [],
     activeTab: 'vakit',
     deferredInstallPrompt: null,
-    qiblaRotation: 0
+    qiblaRotation: 0,
+    streetTile: null,
+    qiblaStreetTile: null
 };
 
 const el = {};
@@ -61,6 +63,7 @@ async function init() {
     try {
         cacheDom();
         bindEvents();
+        initTheme();
         initMap();
         startClock();
     } catch (error) {
@@ -100,6 +103,7 @@ function cacheDom() {
     el.prayerGrid = document.getElementById('prayerGrid');
     el.topbarDate = document.getElementById('topbarDate');
     el.topbarLocation = document.getElementById('topbarLocation');
+    el.themeToggleBtn = document.getElementById('themeToggleBtn');
     el.mosqueSummary = document.getElementById('mosqueSummary');
     el.mosqueList = document.getElementById('mosqueList');
     el.nearestRouteBtn = document.getElementById('nearestRouteBtn');
@@ -149,6 +153,7 @@ function bindEvents() {
     el.geoBtn.addEventListener('click', useCurrentLocation);
     el.qiblaGeoBtn.addEventListener('click', useCurrentLocation);
     el.appRefreshBtn.addEventListener('click', refreshApp);
+    el.themeToggleBtn.addEventListener('click', toggleTheme);
     el.installBtn.addEventListener('click', installPwa);
     el.turkeySearchBtn.addEventListener('click', searchTurkeyMosques);
     el.nearbySearchBtn.addEventListener('click', loadNearbyMosques);
@@ -215,7 +220,7 @@ function initMap() {
         maxZoom: 19
     });
 
-    const streetTile = L.tileLayer(STREET_TILE_URL, {
+    state.streetTile = L.tileLayer(getStreetTileUrl(), {
         maxZoom: 19,
         attribution: '&copy; CartoDB'
     });
@@ -226,11 +231,11 @@ function initMap() {
     });
 
     const baseLayers = {
-        "Harita (Koyu)": streetTile,
+        "Harita (Sokak)": state.streetTile,
         "Uydu Görüntüsü": satelliteTile
     };
 
-    streetTile.addTo(state.map);
+    state.streetTile.addTo(state.map);
     L.control.layers(baseLayers, null, { position: 'topright' }).addTo(state.map);
 
     state.markerLayer = L.layerGroup().addTo(state.map);
@@ -840,7 +845,7 @@ function initQiblaMap() {
         maxZoom: 19
     });
 
-    const streetTile = L.tileLayer(STREET_TILE_URL, {
+    state.qiblaStreetTile = L.tileLayer(getStreetTileUrl(), {
         maxZoom: 19,
         attribution: '&copy; CartoDB'
     });
@@ -851,11 +856,11 @@ function initQiblaMap() {
     });
 
     const baseLayers = {
-        "Harita (Koyu)": streetTile,
+        "Harita (Sokak)": state.qiblaStreetTile,
         "Uydu Görüntüsü": satelliteTile
     };
 
-    streetTile.addTo(state.qiblaMap);
+    state.qiblaStreetTile.addTo(state.qiblaMap);
     L.control.layers(baseLayers, null, { position: 'topright' }).addTo(state.qiblaMap);
 }
 
@@ -1351,4 +1356,41 @@ function setQiblaRotation(deg) {
     if (mapPane) {
         mapPane.style.transform = `rotate(${deg}deg)`;
     }
+}
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('vakit-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeToggleIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('vakit-theme', newTheme);
+    updateThemeToggleIcon(newTheme);
+    
+    // Dynamically update map tile URLs
+    const newUrl = getStreetTileUrl();
+    if (state.streetTile) {
+        state.streetTile.setUrl(newUrl);
+    }
+    if (state.qiblaStreetTile) {
+        state.qiblaStreetTile.setUrl(newUrl);
+    }
+}
+
+function updateThemeToggleIcon(theme) {
+    if (!el.themeToggleBtn) return;
+    el.themeToggleBtn.textContent = theme === 'light' ? '🌙' : '☀️';
+    el.themeToggleBtn.title = theme === 'light' ? 'Koyu Temaya Geç' : 'Açık Temaya Geç';
+}
+
+function getStreetTileUrl() {
+    const theme = localStorage.getItem('vakit-theme') || 'dark';
+    return theme === 'light'
+        ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 }
