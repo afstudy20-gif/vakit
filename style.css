@@ -1,55 +1,56 @@
 :root {
     color-scheme: dark;
-    --bg: #090a0c;
-    --surface: #121518;
-    --surface-soft: #1b1e22;
-    --surface-glass: rgba(18, 21, 24, 0.82);
-    --surface-glass-bright: rgba(223, 177, 38, 0.06);
-    --ink: #f4f6f8;
-    --muted: #8a949e;
-    --line: rgba(255, 255, 255, 0.08);
-    --line-active: rgba(223, 177, 38, 0.45);
-    --brand: #dfb126;
-    --brand-dark: #b58d19;
-    --brand-soft: rgba(223, 177, 38, 0.1);
-    --accent: #dfb126;
-    --accent-soft: rgba(223, 177, 38, 0.08);
-    --blue: #3d80fc;
-    --danger: #d94e4e;
-    --shadow: 0 16px 45px rgba(0, 0, 0, 0.55);
-    --shadow-active: 0 0 25px rgba(223, 177, 38, 0.25);
-    --glow: 0 0 20px rgba(223, 177, 38, 0.15);
+    --bg: #090a10;
+    --surface: #111420;
+    --surface-soft: #171c2c;
+    --surface-glass: rgba(17, 20, 32, 0.85);
+    --surface-glass-bright: rgba(138, 92, 245, 0.06);
+    --ink: #f8fafc;
+    --muted: #94a3b8;
+    --line: rgba(255, 255, 255, 0.07);
+    --line-active: rgba(138, 92, 245, 0.45);
+    --brand: #f59e0b; /* Soft golden amber */
+    --brand-dark: #d97706;
+    --brand-soft: rgba(245, 158, 11, 0.1);
+    --accent: #8a5cf5; /* Futuristic Cosmic Violet */
+    --accent-soft: rgba(138, 92, 245, 0.12);
+    --blue: #3b82f6;
+    --danger: #ef4444;
+    --shadow: 0 16px 45px rgba(0, 0, 0, 0.65);
+    --shadow-active: 0 0 25px rgba(138, 92, 245, 0.3);
+    --glow: 0 0 20px rgba(245, 158, 11, 0.2);
     --bg-gradient: 
-        radial-gradient(circle at 80% 20%, rgba(223, 177, 38, 0.05), transparent 450px),
-        radial-gradient(circle at 20% 80%, rgba(61, 128, 252, 0.04), transparent 550px),
-        linear-gradient(180deg, var(--bg), #010203);
+        radial-gradient(circle at 80% 10%, rgba(138, 92, 245, 0.07), transparent 450px),
+        radial-gradient(circle at 20% 90%, rgba(59, 130, 246, 0.08), transparent 550px),
+        radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.03), transparent 400px),
+        linear-gradient(180deg, var(--bg), #030406);
 }
 
 [data-theme="light"] {
     color-scheme: light;
-    --bg: #f7f8fa;
+    --bg: #f4f6fa;
     --surface: #ffffff;
-    --surface-soft: #eef1f4;
-    --surface-glass: rgba(255, 255, 255, 0.88);
-    --surface-glass-bright: rgba(197, 155, 26, 0.06);
-    --ink: #1a1d21;
-    --muted: #6c757d;
-    --line: rgba(0, 0, 0, 0.08);
-    --line-active: rgba(197, 155, 26, 0.55);
-    --brand: #c59b1a;
-    --brand-dark: #9f7b11;
-    --brand-soft: rgba(197, 155, 26, 0.1);
-    --accent: #c59b1a;
-    --accent-soft: rgba(197, 155, 26, 0.08);
-    --blue: #1e60d5;
-    --danger: #c93b3b;
-    --shadow: 0 16px 45px rgba(0, 0, 0, 0.08);
-    --shadow-active: 0 0 25px rgba(197, 155, 26, 0.15);
-    --glow: 0 0 20px rgba(197, 155, 26, 0.1);
+    --surface-soft: #eaecef;
+    --surface-glass: rgba(255, 255, 255, 0.9);
+    --surface-glass-bright: rgba(99, 102, 241, 0.06);
+    --ink: #0f172a; /* Slate 900 */
+    --muted: #64748b; /* Slate 500 */
+    --line: rgba(15, 23, 42, 0.08);
+    --line-active: rgba(99, 102, 241, 0.45);
+    --brand: #d97706; /* Soft premium gold */
+    --brand-dark: #b45309;
+    --brand-soft: rgba(217, 119, 6, 0.1);
+    --accent: #6366f1; /* Premium Cosmic Indigo */
+    --accent-soft: rgba(99, 102, 241, 0.1);
+    --blue: #2563eb;
+    --danger: #dc2626;
+    --shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+    --shadow-active: 0 0 25px rgba(99, 102, 241, 0.18);
+    --glow: 0 0 20px rgba(217, 119, 6, 0.12);
     --bg-gradient: 
-        radial-gradient(circle at 80% 20%, rgba(197, 155, 26, 0.03), transparent 450px),
-        radial-gradient(circle at 20% 80%, rgba(30, 96, 213, 0.03), transparent 550px),
-        linear-gradient(180deg, var(--bg), #e2e5e8);
+        radial-gradient(circle at 80% 10%, rgba(99, 102, 241, 0.05), transparent 450px),
+        radial-gradient(circle at 20% 90%, rgba(14, 165, 233, 0.05), transparent 550px),
+        linear-gradient(180deg, var(--bg), #e2e8f0);
 }
 
 * {
@@ -1369,11 +1370,30 @@ select:disabled {
 
     .topbar,
     .panel-heading,
-    .next-prayer,
     .time-row {
         align-items: stretch;
         flex-direction: column;
         gap: 12px;
+    }
+
+    .next-prayer {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 12px 16px !important;
+        margin-bottom: 14px !important;
+        gap: 12px !important;
+    }
+
+    .next-prayer h2 {
+        font-size: 1.45rem !important;
+    }
+
+    .countdown {
+        min-width: 104px !important;
+        padding: 6px 12px !important;
+        font-size: 1.15rem !important;
     }
 
     .topbar-left {
@@ -1435,9 +1455,47 @@ select:disabled {
     }
 
     .selector-grid,
-    .turkey-search,
-    .prayer-grid {
+    .turkey-search {
         grid-template-columns: 1fr;
+    }
+
+    .prayer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-top: 8px !important;
+    }
+
+    .prayer-time {
+        padding: 10px 8px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        min-height: 72px !important;
+    }
+
+    .prayer-time span {
+        font-size: 0.64rem !important;
+        letter-spacing: 0.2px !important;
+    }
+
+    .prayer-time strong {
+        font-size: 1.15rem !important;
+        margin-top: 4px !important;
+    }
+
+    .prayer-date {
+        text-align: center;
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-weight: 700;
+        margin-bottom: 10px;
+        background: var(--surface-soft);
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        display: block;
+        width: 100%;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
     }
 
     .location-panel,
