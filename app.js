@@ -265,6 +265,7 @@ function initMap() {
 
     state.markerLayer = L.layerGroup().addTo(state.map);
     updateUserMarker();
+    state.map.on('click', handleMapClick);
 }
 
 async function loadCities() {
@@ -881,6 +882,7 @@ function initQiblaMap() {
 
     satelliteTile.addTo(state.qiblaMap);
     setQiblaRotation(0);
+    state.qiblaMap.on('click', handleMapClick);
 }
 
 function renderQibla() {
@@ -907,6 +909,7 @@ function renderQibla() {
         state.qiblaOriginMarker.setLatLng(origin);
     } else {
         state.qiblaOriginMarker = L.marker(origin, {
+            draggable: true,
             icon: L.divIcon({
                 className: 'qibla-user-marker',
                 html: '<span style="display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#06b6d4;color:#fff;border:3px solid #fff;box-shadow:0 4px 16px rgba(6,182,212,0.4);font-weight:900;">•</span>',
@@ -914,6 +917,8 @@ function renderQibla() {
                 iconAnchor: [17, 17]
             })
         }).bindPopup('Bulunan konum').addTo(state.qiblaMap);
+        
+        state.qiblaOriginMarker.on('dragend', handleMarkerDrag);
     }
 
     if (state.kaabaMarker) {
@@ -946,6 +951,7 @@ function updateUserMarker() {
         state.userMarker.setLatLng([state.coords.lat, state.coords.lon]);
     } else {
         state.userMarker = L.marker([state.coords.lat, state.coords.lon], {
+            draggable: true,
             icon: L.divIcon({
                 className: 'user-map-marker',
                 html: '<span style="display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#c66a2d;color:#fff;border:3px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.28);font-weight:900;">•</span>',
@@ -953,6 +959,8 @@ function updateUserMarker() {
                 iconAnchor: [17, 17]
             })
         }).bindPopup('Seçili konum').addTo(state.map);
+        
+        state.userMarker.on('dragend', handleMarkerDrag);
     }
 
     state.map.setView([state.coords.lat, state.coords.lon], Math.max(state.map.getZoom(), 13));
@@ -1578,4 +1586,35 @@ function getStreetTileUrl() {
     return theme === 'light'
         ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
         : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+}
+
+// Map Click and Marker Dragging Location Adjustment
+async function handleLocationAdjust(lat, lon) {
+    state.coords = { lat, lon };
+    setStatus('Konum ayarlanıyor');
+    showToast('Konum haritadan güncelleniyor...');
+
+    try {
+        await matchLocationToDistrict();
+        saveLocation();
+        updateLocationSummary('Haritadan Seçildi');
+        await updateAll();
+        
+        const locName = state.selected.localityName || state.selected.districtName || state.selected.cityName || 'Yeni Konum';
+        showToast(`Konum başarıyla ayarlandı: ${titleCase(locName)}`);
+    } catch (err) {
+        showToast('Konum güncellenirken hata oluştu.');
+        setStatus('Elle seçim hazır');
+    }
+}
+
+function handleMarkerDrag(e) {
+    const position = e.target.getLatLng();
+    handleLocationAdjust(position.lat, position.lng);
+}
+
+function handleMapClick(e) {
+    // Avoid double triggering if user clicked a marker
+    if (e.originalEvent?.defaultPrevented) return;
+    handleLocationAdjust(e.latlng.lat, e.latlng.lng);
 }
