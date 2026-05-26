@@ -899,8 +899,11 @@ select:disabled {
 }
 
 #qiblaMap {
-    width: 100%;
-    height: 100% !important;
+    position: absolute !important;
+    top: -50% !important;
+    left: -50% !important;
+    width: 200% !important;
+    height: 200% !important;
     border-radius: 20px;
     z-index: 1;
 }
