@@ -867,6 +867,7 @@ function initQiblaMap() {
     });
 
     satelliteTile.addTo(state.qiblaMap);
+    setQiblaRotation(0);
 }
 
 function renderQibla() {
@@ -1361,6 +1362,14 @@ function setQiblaRotation(deg) {
     const qiblaMapEl = document.getElementById('qiblaMap');
     if (qiblaMapEl) {
         qiblaMapEl.style.transform = `rotate(${deg}deg)`;
+    }
+    const overlay = document.getElementById('qiblaDirectionOverlay');
+    if (overlay) {
+        overlay.style.transform = `rotate(${deg}deg)`;
+        const labels = overlay.querySelectorAll('.qibla-dir-label');
+        labels.forEach(label => {
+            label.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
+        });
     }
 }
 

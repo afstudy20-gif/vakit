@@ -956,6 +956,65 @@ select:disabled {
     transform: scale(0.95);
 }
 
+.qibla-direction-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    transform-origin: center center;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.qibla-dir-label {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--surface-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 0.68rem;
+    font-weight: 900;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    transform-origin: center center;
+}
+
+.qibla-dir-label.dir-n {
+    top: 18px;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-color: var(--danger);
+    color: var(--danger);
+    box-shadow: 0 0 10px rgba(217, 78, 78, 0.25);
+}
+
+.qibla-dir-label.dir-s {
+    bottom: 18px;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.qibla-dir-label.dir-e {
+    right: 18px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.qibla-dir-label.dir-w {
+    left: 18px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+
 
 .qibla-card {
     display: grid;
