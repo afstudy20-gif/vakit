@@ -1,52 +1,69 @@
 :root {
-    color-scheme: light;
-    --bg: #eef3f0;
-    --surface: #ffffff;
-    --surface-soft: #f7faf8;
-    --ink: #17211f;
-    --muted: #62706d;
-    --line: #dce7e2;
-    --brand: #176b5b;
-    --brand-dark: #0e4e45;
-    --accent: #c66a2d;
-    --accent-soft: #fff1e8;
-    --blue: #2f6fed;
-    --danger: #b53d3d;
-    --shadow: 0 18px 50px rgba(21, 47, 42, 0.12);
+    color-scheme: dark;
+    --bg: #07120e;
+    --surface: #0b1a16;
+    --surface-soft: #112721;
+    --surface-glass: rgba(11, 26, 22, 0.78);
+    --surface-glass-bright: rgba(23, 107, 91, 0.12);
+    --ink: #e8f3f0;
+    --muted: #82a39a;
+    --line: rgba(34, 75, 65, 0.38);
+    --line-active: rgba(223, 177, 38, 0.45);
+    --brand: #dfb126;
+    --brand-dark: #b58d19;
+    --brand-soft: rgba(223, 177, 38, 0.1);
+    --accent: #dfb126;
+    --accent-soft: rgba(223, 177, 38, 0.08);
+    --teal: #176b5b;
+    --teal-glow: rgba(23, 107, 91, 0.35);
+    --blue: #3d80fc;
+    --danger: #d94e4e;
+    --shadow: 0 16px 45px rgba(0, 0, 0, 0.55);
+    --shadow-active: 0 0 25px rgba(223, 177, 38, 0.25);
+    --glow: 0 0 20px rgba(223, 177, 38, 0.15);
 }
 
 * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html {
     min-height: 100%;
+    background-color: var(--bg);
 }
 
 body {
-    margin: 0;
     min-height: 100vh;
-    background:
-        linear-gradient(180deg, rgba(23, 107, 91, 0.12), transparent 280px),
-        var(--bg);
+    background: 
+        radial-gradient(circle at 50% 0%, rgba(23, 107, 91, 0.18), transparent 600px),
+        linear-gradient(180deg, var(--bg), #030806);
     color: var(--ink);
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: "Plus Jakarta Sans", "Inter", "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+    font-weight: 500;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 }
 
 button,
-select {
+select,
+input {
     font: inherit;
+    color: inherit;
 }
 
 button,
 a {
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* App Shell & Layout */
 .app-shell {
-    width: min(1180px, calc(100% - 32px));
+    width: min(1200px, calc(100% - 32px));
     margin: 0 auto;
-    padding: 22px 0 36px;
+    padding: 24px 0 48px;
 }
 
 .topbar {
@@ -54,111 +71,125 @@ a {
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    padding: 18px 0 20px;
+    padding: 16px 0 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
 }
 
 .topbar h1 {
-    margin: 2px 0 0;
-    font-size: clamp(2rem, 5vw, 3.8rem);
-    line-height: 0.95;
-    letter-spacing: 0;
+    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--ink) 30%, var(--brand) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .eyebrow {
-    margin: 0;
     color: var(--brand);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 800;
-    letter-spacing: 0;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
 }
 
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
 
 .header-weather {
     display: inline-flex;
-    min-height: 42px;
+    height: 40px;
     align-items: center;
-    gap: 6px;
-    border: 1px solid rgba(23, 107, 91, 0.14);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.76);
-    padding: 6px 9px;
-    box-shadow: 0 8px 22px rgba(21, 47, 42, 0.08);
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-glass);
+    padding: 6px 12px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .weather-symbol {
     display: grid;
-    width: 34px;
-    height: 34px;
+    width: 26px;
+    height: 26px;
     place-items: center;
     border-radius: 50%;
-    background: var(--accent-soft);
-    color: #8a441c;
-    font-size: 1.35rem;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 1.1rem;
     font-weight: 900;
 }
 
 .weather-temp {
-    color: var(--ink);
-    font-size: 1.05rem;
-    font-weight: 900;
-    white-space: nowrap;
+    font-size: 1rem;
+    font-weight: 800;
 }
 
 .sync-status {
     display: inline-flex;
-    min-height: 36px;
+    height: 40px;
     align-items: center;
-    padding: 0 12px;
-    border: 1px solid rgba(23, 107, 91, 0.18);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
-    color: var(--brand-dark);
-    font-size: 0.82rem;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--surface-glass);
+    color: var(--muted);
+    font-size: 0.8rem;
     font-weight: 700;
-    white-space: nowrap;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .icon-button {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     border: 0;
-    border-radius: 999px;
+    border-radius: 50%;
     background: var(--brand);
-    color: #fff;
+    color: #07120e;
     cursor: pointer;
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     line-height: 1;
-    box-shadow: 0 10px 28px rgba(23, 107, 91, 0.24);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 8px 24px rgba(223, 177, 38, 0.3);
+}
+
+.icon-button:hover {
+    background: var(--ink);
+    transform: scale(1.05);
 }
 
 .refresh-app-btn {
     display: inline-flex;
-    min-height: 36px;
+    height: 40px;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    border: 1px solid rgba(198, 106, 45, 0.3);
-    border-radius: 8px;
-    background: rgba(255, 241, 232, 0.78);
-    color: #8a441c;
-    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-glass);
+    color: var(--ink);
+    padding: 0 14px;
     cursor: pointer;
-    font-size: 0.78rem;
-    font-weight: 800;
-    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    font-size: 0.8rem;
+    font-weight: 700;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .refresh-app-btn:hover {
-    background: rgba(255, 241, 232, 1);
-    box-shadow: 0 6px 18px rgba(198, 106, 45, 0.18);
+    background: var(--surface-soft);
+    border-color: var(--brand);
+    box-shadow: 0 4px 15px rgba(223, 177, 38, 0.1);
 }
 
 .refresh-app-btn:active {
@@ -170,50 +201,59 @@ a {
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
+/* Tabs */
 .app-tabs {
     display: inline-flex;
-    gap: 6px;
-    border: 1px solid rgba(23, 107, 91, 0.12);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.7);
-    padding: 5px;
-    margin-bottom: 14px;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-glass);
+    padding: 4px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .app-tabs button {
-    min-height: 36px;
+    height: 38px;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
     color: var(--muted);
-    padding: 0 14px;
+    padding: 0 18px;
     cursor: pointer;
-    font-weight: 800;
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.app-tabs button:hover {
+    color: var(--ink);
 }
 
 .app-tabs button.active {
     background: var(--brand);
-    color: #fff;
-    box-shadow: 0 8px 18px rgba(23, 107, 91, 0.18);
+    color: #07120e;
+    font-weight: 800;
+    box-shadow: 0 8px 20px rgba(223, 177, 38, 0.25);
 }
 
+/* Dashboard & Sections */
 .dashboard {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
-    gap: 16px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    gap: 20px;
     align-items: start;
 }
 
 section {
-    border: 1px solid rgba(23, 107, 91, 0.12);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
     box-shadow: var(--shadow);
+    overflow: hidden;
 }
 
 .location-panel,
@@ -221,7 +261,7 @@ section {
 .weather-panel,
 .mosque-panel,
 .qibla-panel {
-    padding: 18px;
+    padding: 24px;
 }
 
 .location-panel,
@@ -235,137 +275,219 @@ section {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .panel-heading.compact {
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .panel-heading h2,
 .weather-panel h2,
 .mosque-panel h2 {
-    margin: 0;
-    font-size: 1.12rem;
-    letter-spacing: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: var(--ink);
 }
 
 .panel-heading p,
 .weather-panel p,
 .mosque-panel p {
-    margin: 4px 0 0;
+    margin-top: 4px;
     color: var(--muted);
-    font-size: 0.92rem;
-    line-height: 1.45;
+    font-size: 0.88rem;
+    line-height: 1.4;
 }
 
+/* Selector Grid */
 .selector-grid {
     display: grid;
     grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
-    gap: 12px;
+    gap: 14px;
     align-items: end;
+    background: var(--surface-soft);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
 }
 
 label {
     display: grid;
-    gap: 6px;
+    gap: 8px;
     color: var(--muted);
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 select {
     width: 100%;
-    min-height: 44px;
+    height: 44px;
     border: 1px solid var(--line);
-    border-radius: 8px;
-    background: #fff;
+    border-radius: 10px;
+    background: var(--surface);
     color: var(--ink);
-    padding: 0 12px;
+    padding: 0 14px;
     outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2382a39a'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
 }
 
 select:focus {
     border-color: var(--brand);
-    box-shadow: 0 0 0 3px rgba(23, 107, 91, 0.14);
+    box-shadow: 0 0 0 3px rgba(223, 177, 38, 0.15);
 }
 
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Buttons */
 .primary-button,
 .secondary-button {
-    min-height: 44px;
+    height: 44px;
     border: 0;
-    border-radius: 8px;
-    padding: 0 16px;
+    border-radius: 10px;
+    padding: 0 22px;
     cursor: pointer;
     font-weight: 800;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     white-space: nowrap;
 }
 
 .primary-button {
     background: var(--brand);
-    color: #fff;
-    box-shadow: 0 10px 28px rgba(23, 107, 91, 0.2);
+    color: #07120e;
+    box-shadow: 0 8px 24px rgba(223, 177, 38, 0.22);
+}
+
+.primary-button:hover {
+    background: var(--ink);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(255, 255, 255, 0.15);
 }
 
 .secondary-button {
     border: 1px solid var(--line);
     background: var(--surface-soft);
-    color: var(--brand-dark);
+    color: var(--ink);
+}
+
+.secondary-button:hover {
+    background: var(--surface);
+    border-color: var(--brand);
+}
+
+.primary-button.compact,
+.secondary-button.compact {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 0.8rem;
+    border-radius: 8px;
 }
 
 .link-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     text-decoration: none;
 }
 
 .link-button[aria-disabled="true"] {
     pointer-events: none;
-    opacity: 0.5;
+    opacity: 0.4;
 }
 
+/* Prayer Panel */
 .next-prayer {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--line);
+    padding: 16px;
+    background: linear-gradient(135deg, var(--teal) 0%, #0d3830 100%);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.next-prayer::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(223, 177, 38, 0.12) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .next-prayer h2 {
-    margin: 4px 0 0;
-    font-size: clamp(2.2rem, 6vw, 4rem);
-    line-height: 0.95;
-    letter-spacing: 0;
+    margin-top: 4px;
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.5px;
+    color: var(--brand);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 
 .countdown {
-    min-width: 132px;
-    border-radius: 8px;
-    background: var(--accent-soft);
-    color: #8a441c;
-    padding: 12px 14px;
+    min-width: 124px;
+    border-radius: 10px;
+    background: rgba(223, 177, 38, 0.12);
+    color: var(--brand);
+    border: 1px solid rgba(223, 177, 38, 0.35);
+    padding: 10px 14px;
     text-align: center;
-    font-size: 1.28rem;
-    font-weight: 900;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    animation: countdownPulse 3s infinite ease-in-out;
+}
+
+@keyframes countdownPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+    50% { transform: scale(1.02); border-color: var(--brand); box-shadow: 0 4px 20px rgba(223, 177, 38, 0.15); }
 }
 
 .time-row {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 12px;
-    margin: 14px 0;
+    margin: 16px 0;
     color: var(--muted);
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     font-weight: 700;
+    background: var(--surface-soft);
+    padding: 10px 14px;
+    border-radius: 10px;
+}
+
+#currentClock {
+    color: var(--ink);
+    font-weight: 800;
 }
 
 .prayer-grid,
 .weather-grid {
     display: grid;
-    gap: 10px;
+    gap: 12px;
 }
 
 .prayer-grid {
@@ -376,48 +498,108 @@ select:focus {
 .weather-card,
 .mosque-item {
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--surface-soft);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .prayer-time {
-    padding: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.prayer-time:hover {
+    border-color: rgba(223, 177, 38, 0.25);
+    transform: translateY(-2px);
 }
 
 .prayer-time.active {
-    border-color: rgba(198, 106, 45, 0.55);
+    border-color: var(--brand);
     background: var(--accent-soft);
+    box-shadow: var(--shadow-active), inset 0 0 10px rgba(223, 177, 38, 0.05);
 }
 
 .prayer-time span,
 .weather-card span {
     display: block;
     color: var(--muted);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prayer-time.active span {
+    color: var(--brand);
 }
 
 .prayer-time strong {
     display: block;
-    margin-top: 4px;
-    font-size: 1.2rem;
+    margin-top: 6px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
 }
 
+.prayer-time.active strong {
+    color: var(--brand);
+    text-shadow: 0 0 10px rgba(223, 177, 38, 0.15);
+}
+
+/* Weather Panel */
 .weather-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.weather-card-type {
+    font-size: 0.65rem !important;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: var(--brand) !important;
+    margin-bottom: 4px;
+}
+
+.weather-range {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+}
+
+.weather-range .max-temp {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1.1;
+}
+
+.weather-range .min-temp {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--muted);
 }
 
 .weather-card {
-    min-height: 116px;
-    padding: 12px;
-    display: grid;
-    align-content: space-between;
+    min-height: 120px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     gap: 8px;
+}
+
+.weather-card:hover {
+    border-color: var(--line-active);
+    transform: translateY(-2px);
 }
 
 .weather-card strong {
     display: block;
-    font-size: 1.55rem;
+    font-size: 1.65rem;
+    font-weight: 800;
 }
 
 .weather-visual {
@@ -429,14 +611,14 @@ select:focus {
 
 .weather-large-icon {
     display: grid;
-    width: 50px;
-    height: 50px;
+    width: 44px;
+    height: 44px;
     place-items: center;
     border-radius: 50%;
-    background: var(--accent-soft);
-    color: #8a441c;
-    font-size: 2rem;
-    box-shadow: inset 0 0 0 1px rgba(198, 106, 45, 0.14);
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 1.6rem;
+    box-shadow: inset 0 0 0 1px rgba(223, 177, 38, 0.2);
 }
 
 .weather-metrics {
@@ -447,150 +629,118 @@ select:focus {
 
 .weather-metrics span {
     display: inline-flex;
-    min-height: 24px;
+    height: 22px;
     align-items: center;
     border: 1px solid var(--line);
-    border-radius: 999px;
-    background: #fff;
+    border-radius: 20px;
+    background: var(--surface);
     color: var(--muted);
     padding: 0 8px;
-    font-size: 0.74rem;
-    font-weight: 900;
-}
-
-.map-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-    gap: 14px;
-    min-height: 460px;
-}
-
-.qibla-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
-    gap: 14px;
-}
-
-#qiblaMap {
-    width: 100%;
-    min-height: 460px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.qibla-card {
-    display: grid;
-    align-content: start;
-    justify-items: center;
-    gap: 18px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: var(--surface-soft);
-    padding: 18px;
-    text-align: center;
-}
-
-.qibla-compass {
-    width: min(220px, 70vw);
-    aspect-ratio: 1;
-    border: 1px solid rgba(23, 107, 91, 0.18);
-    border-radius: 50%;
-    background:
-        linear-gradient(90deg, transparent 49.6%, rgba(23, 107, 91, 0.18) 50%, transparent 50.4%),
-        linear-gradient(0deg, transparent 49.6%, rgba(23, 107, 91, 0.18) 50%, transparent 50.4%),
-        #fff;
-    display: grid;
-    place-items: center;
-    box-shadow: inset 0 0 0 16px rgba(23, 107, 91, 0.05);
-}
-
-.qibla-arrow {
-    display: grid;
-    width: 76px;
-    height: 76px;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--brand);
-    color: #fff;
-    font-size: 2.4rem;
-    box-shadow: 0 12px 28px rgba(23, 107, 91, 0.24);
-    transform-origin: center;
-}
-
-.qibla-card span {
-    display: block;
-    color: var(--muted);
-    font-size: 0.8rem;
-    font-weight: 800;
-}
-
-.qibla-card strong {
-    display: block;
-    margin-top: 4px;
-    font-size: 2.2rem;
-}
-
-.qibla-card p {
-    margin: 6px 0 0;
-    color: var(--muted);
+    font-size: 0.7rem;
     font-weight: 700;
 }
 
-.turkey-search {
+/* Mosque Panel (Harita ve Liste) */
+.map-layout {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto auto;
-    gap: 10px;
-    margin-bottom: 14px;
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+    gap: 16px;
+    min-height: 480px;
 }
 
-.turkey-search input {
+.map-container-relative {
+    position: relative;
     width: 100%;
-    min-height: 44px;
+    border-radius: 12px;
+    overflow: hidden;
     border: 1px solid var(--line);
-    border-radius: 8px;
-    background: #fff;
-    color: var(--ink);
-    padding: 0 12px;
-    font: inherit;
-    outline: none;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    background-color: #0b110e;
 }
 
-.turkey-search input:focus {
+.map-overlay-btn {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: var(--surface-glass);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.map-overlay-btn:hover {
+    background: var(--surface-soft);
     border-color: var(--brand);
-    box-shadow: 0 0 0 3px rgba(23, 107, 91, 0.14);
+    transform: translateX(-50%) translateY(-1px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+}
+
+.map-overlay-btn:active {
+    transform: translateX(-50%) scale(0.97);
 }
 
 #map {
     width: 100%;
-    min-height: 460px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    overflow: hidden;
+    height: 480px;
+    z-index: 1;
 }
 
 .mosque-list {
     display: grid;
     align-content: start;
-    gap: 10px;
-    max-height: 460px;
-    overflow: auto;
-    padding-right: 4px;
+    gap: 12px;
+    max-height: 480px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+/* Custom Scrollbar */
+.mosque-list::-webkit-scrollbar {
+    width: 6px;
+}
+.mosque-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.mosque-list::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 10px;
+}
+.mosque-list::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
 }
 
 .mosque-item {
-    padding: 12px;
+    padding: 16px;
+}
+
+.mosque-item:hover {
+    border-color: var(--line-active);
+    transform: translateY(-1px);
 }
 
 .mosque-item h3 {
-    margin: 0;
-    font-size: 0.98rem;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--ink);
 }
 
 .mosque-item p {
-    margin: 5px 0 10px;
+    margin: 6px 0 12px;
     color: var(--muted);
-    font-size: 0.86rem;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .mosque-actions {
@@ -601,48 +751,306 @@ select:focus {
 
 .mini-link {
     display: inline-flex;
-    min-height: 34px;
+    height: 32px;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    padding: 0 10px;
+    padding: 0 14px;
     background: var(--brand);
-    color: #fff;
+    color: #07120e;
     text-decoration: none;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 800;
+}
+
+.mini-link:hover {
+    background: var(--ink);
 }
 
 .mini-link.secondary {
     border: 1px solid var(--line);
-    background: #fff;
-    color: var(--brand-dark);
+    background: var(--surface);
+    color: var(--ink);
 }
 
+.mini-link.secondary:hover {
+    border-color: var(--brand);
+    background: var(--surface-soft);
+}
+
+/* Qibla Panel & Rotatable Circular Map */
+.qibla-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap: 20px;
+    align-items: center;
+}
+
+.qibla-map-wrapper {
+    border-radius: 50% !important;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 440px;
+    margin: 0 auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.65), inset 0 0 30px rgba(0,0,0,0.5);
+    border: 4px solid var(--line);
+    transition: border-color 0.3s;
+    background-color: #000;
+}
+
+.qibla-map-wrapper:focus-within,
+.qibla-map-wrapper:hover {
+    border-color: var(--brand);
+}
+
+#qiblaMap {
+    width: 100%;
+    height: 100% !important;
+    border-radius: 50%;
+    z-index: 1;
+    /* CSS rotation will be applied to .leaflet-map-pane inside it, 
+       this ensures we can rotate the tiles and markers natively! */
+}
+
+/* Leaflet pane rotation transitions */
+.leaflet-map-pane {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.qibla-card {
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    gap: 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface-soft);
+    padding: 20px;
+    text-align: center;
+}
+
+.qibla-compass {
+    width: min(150px, 45vw);
+    aspect-ratio: 1;
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    background: 
+        linear-gradient(90deg, transparent 49.5%, var(--line) 50%, transparent 50.5%),
+        linear-gradient(0deg, transparent 49.5%, var(--line) 50%, transparent 50.5%),
+        var(--surface);
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.35);
+    position: relative;
+}
+
+.qibla-compass::before {
+    content: 'K';
+    position: absolute;
+    top: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--danger);
+}
+
+.qibla-arrow {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #07120e;
+    font-size: 1.8rem;
+    box-shadow: 0 8px 20px rgba(223, 177, 38, 0.35);
+    transform-origin: center;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.qibla-metrics-box span {
+    display: block;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.qibla-metrics-box strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--brand);
+    text-shadow: 0 0 10px rgba(223, 177, 38, 0.1);
+}
+
+.qibla-metrics-box p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.card-divider {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 4px 0;
+}
+
+/* Qibla rotation controls UI */
+.qibla-rotation-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.rotation-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rotation-slider-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.rotation-step-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+}
+
+.rotation-step-btn:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+    background: var(--surface-soft);
+}
+
+#qiblaMapRotation {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+#qiblaMapRotation::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--brand);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: transform 0.1s;
+}
+
+#qiblaMapRotation::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+.qibla-actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.qibla-actions-row button {
+    width: 100%;
+}
+
+/* Turkey Search */
+.turkey-search {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) auto auto;
+    gap: 10px;
+    margin-bottom: 16px;
+    background: var(--surface-soft);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+}
+
+.turkey-search input {
+    width: 100%;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0 14px;
+    outline: none;
+}
+
+.turkey-search input:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(223, 177, 38, 0.15);
+}
+
+/* Map Markers Styling in Leaflet */
+.mosque-map-marker span,
+.kaaba-marker span,
+.user-map-marker span {
+    transition: transform 0.2s;
+}
+
+.mosque-map-marker span:hover,
+.kaaba-marker span:hover,
+.user-map-marker span:hover {
+    transform: scale(1.15);
+}
+
+/* General Extras */
 .empty-state {
     border: 1px dashed var(--line);
-    border-radius: 8px;
-    padding: 18px;
+    border-radius: 12px;
+    padding: 24px;
     color: var(--muted);
-    background: rgba(255, 255, 255, 0.68);
+    background: rgba(11, 26, 22, 0.4);
     line-height: 1.5;
+    text-align: center;
+    font-size: 0.9rem;
 }
 
 .toast {
     position: fixed;
-    right: 18px;
-    bottom: 18px;
-    z-index: 2000;
-    max-width: min(420px, calc(100vw - 36px));
-    border-radius: 8px;
-    background: #10231f;
-    color: #fff;
-    padding: 12px 14px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+    right: 24px;
+    bottom: 24px;
+    z-index: 3000;
+    max-width: min(400px, calc(100vw - 48px));
+    border-radius: 12px;
+    background: #0f241e;
+    color: var(--ink);
+    border: 1px solid var(--line-active);
+    padding: 14px 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
     pointer-events: none;
-    transition: opacity 0.2s, transform 0.2s;
+    transition: opacity 0.3s, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    font-weight: 600;
 }
 
 .toast.show {
@@ -650,16 +1058,68 @@ select:focus {
     transform: translateY(0);
 }
 
+/* Leaflet Popups Custom */
+.leaflet-popup-content-wrapper {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 10px !important;
+    box-shadow: var(--shadow) !important;
+}
+
+.leaflet-popup-tip {
+    background: var(--surface) !important;
+    border: 1px solid var(--line) !important;
+}
+
 .leaflet-popup-content h3 {
-    margin: 0 0 4px;
+    margin: 0 0 6px;
     font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--brand);
 }
 
 .leaflet-popup-content p {
     margin: 0;
-    color: #596763;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
+/* Custom premium styling for Leaflet controls */
+.leaflet-bar {
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--shadow) !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+.leaflet-bar a {
+    background-color: var(--surface-glass) !important;
+    color: var(--ink) !important;
+    border-bottom: 1px solid var(--line) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.leaflet-bar a:hover {
+    background-color: var(--surface-soft) !important;
+    color: var(--brand) !important;
+}
+
+.leaflet-control-layers-expanded {
+    background: var(--surface-glass) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--ink) !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 8px 12px !important;
+}
+
+/* Responsive Breakpoints */
 @media (max-width: 900px) {
     .dashboard,
     .map-layout,
@@ -680,12 +1140,20 @@ select:focus {
         overflow: visible;
         padding-right: 0;
     }
+
+    .qibla-map-wrapper {
+        max-width: min(360px, 80vw);
+    }
+
+    .weather-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
 }
 
 @media (max-width: 620px) {
     .app-shell {
-        width: min(100% - 22px, 1180px);
-        padding-top: 10px;
+        width: min(100% - 20px, 1200px);
+        padding-top: 14px;
     }
 
     .topbar,
@@ -694,6 +1162,7 @@ select:focus {
     .time-row {
         align-items: stretch;
         flex-direction: column;
+        gap: 12px;
     }
 
     .topbar-actions {
@@ -714,9 +1183,12 @@ select:focus {
 
     .selector-grid,
     .turkey-search,
-    .prayer-grid,
-    .weather-grid {
+    .prayer-grid {
         grid-template-columns: 1fr;
+    }
+
+    .weather-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 
     .location-panel,
@@ -724,10 +1196,10 @@ select:focus {
     .weather-panel,
     .mosque-panel,
     .qibla-panel {
-        padding: 14px;
+        padding: 16px;
     }
 
     #map {
-        min-height: 360px;
+        height: 360px;
     }
 }

@@ -12,6 +12,9 @@ const OVERPASS_ENDPOINTS = [
 const KAABA = { lat: 21.422487, lon: 39.826206 };
 const DATA_CACHE_PREFIX = 'vakit-data:';
 
+const STREET_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const SATELLITE_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+
 const PRAYERS = [
     ['Imsak', 'İmsak'],
     ['Gunes', 'Güneş'],
@@ -46,7 +49,8 @@ const state = {
     kaabaMarker: null,
     nearestMosques: [],
     activeTab: 'vakit',
-    deferredInstallPrompt: null
+    deferredInstallPrompt: null,
+    qiblaRotation: 0
 };
 
 const el = {};
@@ -97,6 +101,14 @@ function cacheDom() {
     el.tabButtons = [...document.querySelectorAll('[data-tab]')];
     el.tabPanels = [...document.querySelectorAll('[data-tab-panel]')];
     el.toast = document.getElementById('toast');
+
+    // Premium controllers
+    el.mapScanBtn = document.getElementById('mapScanBtn');
+    el.qiblaMapRotation = document.getElementById('qiblaMapRotation');
+    el.rotateLeftBtn = document.getElementById('rotateLeftBtn');
+    el.rotateRightBtn = document.getElementById('rotateRightBtn');
+    el.alignQiblaBtn = document.getElementById('alignQiblaBtn');
+    el.resetRotationBtn = document.getElementById('resetRotationBtn');
 }
 
 function bindEvents() {
@@ -138,6 +150,46 @@ function bindEvents() {
         el.installBtn.hidden = false;
     });
     window.addEventListener('hashchange', applyInitialTab);
+
+    // Premium event bindings
+    if (el.mapScanBtn) {
+        el.mapScanBtn.addEventListener('click', scanCurrentMapArea);
+    }
+    if (el.qiblaMapRotation) {
+        el.qiblaMapRotation.addEventListener('input', () => {
+            setQiblaRotation(Number(el.qiblaMapRotation.value));
+        });
+    }
+    if (el.rotateLeftBtn) {
+        el.rotateLeftBtn.addEventListener('click', () => {
+            const next = (state.qiblaRotation - 15 + 360) % 360;
+            el.qiblaMapRotation.value = next;
+            setQiblaRotation(next);
+        });
+    }
+    if (el.rotateRightBtn) {
+        el.rotateRightBtn.addEventListener('click', () => {
+            const next = (state.qiblaRotation + 15) % 360;
+            el.qiblaMapRotation.value = next;
+            setQiblaRotation(next);
+        });
+    }
+    if (el.alignQiblaBtn) {
+        el.alignQiblaBtn.addEventListener('click', () => {
+            const bearing = qiblaBearing(state.coords.lat, state.coords.lon);
+            const rotation = (360 - Math.round(bearing)) % 360;
+            el.qiblaMapRotation.value = rotation;
+            setQiblaRotation(rotation);
+            showToast(`Harita Kıbleye (${Math.round(bearing)}°) hizalandı. Üst yön Kıble'dir!`);
+        });
+    }
+    if (el.resetRotationBtn) {
+        el.resetRotationBtn.addEventListener('click', () => {
+            el.qiblaMapRotation.value = 0;
+            setQiblaRotation(0);
+            showToast('Pusula yönü kuzeye sıfırlandı.');
+        });
+    }
 }
 
 function initMap() {
@@ -148,10 +200,23 @@ function initMap() {
         maxZoom: 19
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const streetTile = L.tileLayer(STREET_TILE_URL, {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(state.map);
+        attribution: '&copy; CartoDB'
+    });
+
+    const satelliteTile = L.tileLayer(SATELLITE_TILE_URL, {
+        maxZoom: 19,
+        attribution: '&copy; Esri World Imagery'
+    });
+
+    const baseLayers = {
+        "Harita (Koyu)": streetTile,
+        "Uydu Görüntüsü": satelliteTile
+    };
+
+    streetTile.addTo(state.map);
+    L.control.layers(baseLayers, null, { position: 'topright' }).addTo(state.map);
 
     state.markerLayer = L.layerGroup().addTo(state.map);
     updateUserMarker();
@@ -376,7 +441,9 @@ async function loadWeather() {
         latitude: state.coords.lat,
         longitude: state.coords.lon,
         hourly: 'temperature_2m,precipitation_probability,weather_code,wind_speed_10m',
+        daily: 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max',
         forecast_hours: '4',
+        forecast_days: '4',
         timezone: 'auto'
     }).toString();
 
@@ -393,6 +460,7 @@ async function loadWeather() {
         }
         showToast('Hava durumu son kayıtla gösteriliyor.');
     }
+
     const hours = weather.hourly.time.slice(0, 3).map((time, index) => ({
         time,
         temp: weather.hourly.temperature_2m[index],
@@ -401,21 +469,57 @@ async function loadWeather() {
         wind: weather.hourly.wind_speed_10m[index]
     }));
 
-    el.weatherSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} için 3 saatlik görsel tahmin`;
+    const days = [];
+    if (weather.daily) {
+        for (let i = 1; i <= 3; i++) {
+            if (weather.daily.time[i]) {
+                days.push({
+                    time: weather.daily.time[i],
+                    tempMax: weather.daily.temperature_2m_max[i],
+                    tempMin: weather.daily.temperature_2m_min[i],
+                    rain: weather.daily.precipitation_probability_max ? weather.daily.precipitation_probability_max[i] : 0,
+                    code: weather.daily.weather_code[i]
+                });
+            }
+        }
+    }
+
+    el.weatherSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} için saatlik ve 3 günlük hava tahmini`;
     renderHeaderWeather(hours[0]);
-    el.weatherGrid.innerHTML = hours.map(hour => `
-        <div class="weather-card" aria-label="${formatHour(hour.time)} ${weatherLabel(hour.code)}, ${Math.round(hour.temp)} derece">
-            <span>${formatHour(hour.time)}</span>
+
+    // Hourly cards HTML
+    const hourlyHtml = hours.map(hour => `
+        <div class="weather-card hourly-card" aria-label="${formatHour(hour.time)} ${weatherLabel(hour.code)}, ${Math.round(hour.temp)} derece">
+            <span class="weather-card-type">SAATLİK · ${formatHour(hour.time)}</span>
             <div class="weather-visual">
                 <div class="weather-large-icon">${weatherIcon(hour.code)}</div>
                 <strong>${Math.round(hour.temp)}°</strong>
             </div>
-            <div class="weather-metrics" aria-label="Yağış ${hour.rain ?? 0}%, rüzgar ${Math.round(hour.wind ?? 0)} kilometre saat">
+            <div class="weather-metrics">
                 <span title="Yağış">☂ ${hour.rain ?? 0}%</span>
                 <span title="Rüzgar">⇢ ${Math.round(hour.wind ?? 0)}</span>
             </div>
         </div>
     `).join('');
+
+    // Daily cards HTML
+    const dailyHtml = days.map(day => `
+        <div class="weather-card daily-card" aria-label="${formatDayName(day.time)} ${weatherLabel(day.code)}, en yüksek ${Math.round(day.tempMax)}, en düşük ${Math.round(day.tempMin)} derece">
+            <span class="weather-card-type">GÜNLÜK · ${formatDayName(day.time)}</span>
+            <div class="weather-visual">
+                <div class="weather-large-icon">${weatherIcon(day.code)}</div>
+                <div class="weather-range">
+                    <strong class="max-temp">${Math.round(day.tempMax)}°</strong>
+                    <span class="min-temp">${Math.round(day.tempMin)}°</span>
+                </div>
+            </div>
+            <div class="weather-metrics">
+                <span title="Maksimum Yağış">☂ ${day.rain ?? 0}%</span>
+            </div>
+        </div>
+    `).join('');
+
+    el.weatherGrid.innerHTML = hourlyHtml + dailyHtml;
 }
 
 function renderHeaderWeather(hour) {
@@ -433,23 +537,34 @@ async function loadNearbyMosques() {
     state.markerLayer.clearLayers();
     updateUserMarker();
 
-    const localMosques = getLocalMosques(state.coords, 8);
+    const localMosques = getLocalMosques(state.coords, 10);
     state.nearestMosques = localMosques;
     renderMosques();
     renderMosqueMarkers();
 
-    fetchOsmMosques(state.coords, 3000)
-        .then(osmMosques => {
-            const merged = mergeMosques(osmMosques, localMosques).slice(0, 10);
-            if (merged.length === 0) return;
+    // Adaptive expanding radius search
+    let radius = 2000;
+    try {
+        let osmMosques = await fetchOsmMosques(state.coords, radius);
+        if (osmMosques.length < 5) {
+            radius = 5000;
+            osmMosques = await fetchOsmMosques(state.coords, radius);
+        }
+        if (osmMosques.length < 5) {
+            radius = 10000;
+            osmMosques = await fetchOsmMosques(state.coords, radius);
+        }
+
+        const merged = mergeMosques(osmMosques, localMosques).slice(0, 15);
+        if (merged.length > 0) {
             state.markerLayer.clearLayers();
             state.nearestMosques = merged;
             renderMosques();
             renderMosqueMarkers();
-        })
-        .catch(() => {
-            showToast('OpenStreetMap yakın cami araması gecikti; yerel cami listesi gösteriliyor.');
-        });
+        }
+    } catch (error) {
+        showToast('OpenStreetMap yakın cami araması gecikti; yerel cami listesi gösteriliyor.');
+    }
 }
 
 async function searchTurkeyMosques() {
@@ -730,10 +845,23 @@ function initQiblaMap() {
         maxZoom: 19
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const streetTile = L.tileLayer(STREET_TILE_URL, {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(state.qiblaMap);
+        attribution: '&copy; CartoDB'
+    });
+
+    const satelliteTile = L.tileLayer(SATELLITE_TILE_URL, {
+        maxZoom: 19,
+        attribution: '&copy; Esri World Imagery'
+    });
+
+    const baseLayers = {
+        "Harita (Koyu)": streetTile,
+        "Uydu Görüntüsü": satelliteTile
+    };
+
+    streetTile.addTo(state.qiblaMap);
+    L.control.layers(baseLayers, null, { position: 'topright' }).addTo(state.qiblaMap);
 }
 
 function renderQibla() {
@@ -1048,6 +1176,11 @@ function formatHour(value) {
     }).format(new Date(value));
 }
 
+function formatDayName(value) {
+    const date = new Date(value);
+    return new Intl.DateTimeFormat('tr-TR', { weekday: 'long' }).format(date);
+}
+
 function formatCoord(value) {
     return Number(value).toFixed(3);
 }
@@ -1146,4 +1279,68 @@ function overpassRegex(value) {
         .trim()
         .replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
         .replace(/\s+/g, '.*');
+}
+
+// New premium helper functions
+async function scanCurrentMapArea() {
+    if (!state.map) return;
+    const btn = el.mapScanBtn;
+    if (!btn) return;
+
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Taranıyor...';
+    showToast('Harita alanı cami ve mescitler için taranıyor...');
+
+    try {
+        const bounds = state.map.getBounds();
+        const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+        const query = `[out:json][timeout:15];(node["amenity"="place_of_worship"]["religion"="muslim"](${bbox});way["amenity"="place_of_worship"]["religion"="muslim"](${bbox});relation["amenity"="place_of_worship"]["religion"="muslim"](${bbox});node["building"="mosque"](${bbox});way["building"="mosque"](${bbox});relation["building"="mosque"](${bbox});node["name"~"cami|camii|mescit|mescid|mescidi|masjid|mosque",i](${bbox});way["name"~"cami|camii|mescit|mescid|mescidi|masjid|mosque",i](${bbox});relation["name"~"cami|camii|mescit|mescid|mescidi|masjid|mosque",i](${bbox}););out center tags 80;`;
+
+        let scanResults = [];
+        for (const endpoint of OVERPASS_ENDPOINTS) {
+            try {
+                const body = new URLSearchParams({ data: query });
+                const response = await fetchWithTimeout(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                    body
+                }, 10000);
+                if (!response.ok) continue;
+                const data = await response.json();
+                scanResults = data.elements
+                    .map(item => normalizeOsmMosque(item, state.coords))
+                    .filter(Boolean);
+                break;
+            } catch (err) {
+                continue;
+            }
+        }
+
+        const localMosques = getLocalMosques(state.coords, 10);
+        const merged = mergeMosques(scanResults, localMosques);
+        
+        if (merged.length > 0) {
+            state.markerLayer.clearLayers();
+            state.nearestMosques = merged;
+            renderMosques();
+            renderMosqueMarkers();
+            showToast(`Tarama tamamlandı! Bu bölgede ${scanResults.length} cami/mescit bulundu.`);
+        } else {
+            showToast('Bu harita alanında cami veya mescit bulunamadı.');
+        }
+    } catch (error) {
+        showToast('Canlı harita taraması başarısız oldu.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+function setQiblaRotation(deg) {
+    state.qiblaRotation = deg;
+    const mapPane = document.querySelector('#qiblaMap .leaflet-map-pane');
+    if (mapPane) {
+        mapPane.style.transform = `rotate(${deg}deg)`;
+    }
 }

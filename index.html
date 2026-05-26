@@ -11,6 +11,9 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -88,8 +91,8 @@
             <section class="weather-panel tab-panel" data-tab-panel="vakit">
                 <div class="panel-heading compact">
                     <div>
-                        <h2>3 Saatlik Hava</h2>
-                        <p id="weatherSummary">Konum seçilince güncellenecek.</p>
+                        <h2>Saatlik ve Günlük Hava Tahmini</h2>
+                        <p id="weatherSummary">Saatlik ve 3 günlük hava durumu tahmini.</p>
                     </div>
                 </div>
                 <div class="weather-grid" id="weatherGrid"></div>
@@ -109,7 +112,10 @@
                     <button class="secondary-button" id="nearbySearchBtn" type="button">Yakınıma Dön</button>
                 </div>
                 <div class="map-layout">
-                    <div id="map" aria-label="Yakındaki camiler haritası"></div>
+                    <div class="map-container-relative">
+                        <div id="map" aria-label="Yakındaki camiler haritası"></div>
+                        <button class="map-overlay-btn" id="mapScanBtn" type="button">🔍 Bu Haritayı Tara</button>
+                    </div>
                     <div class="mosque-list" id="mosqueList"></div>
                 </div>
             </section>
@@ -117,21 +123,36 @@
             <section class="qibla-panel tab-panel" id="qiblaPanel" data-tab-panel="qibla" hidden>
                 <div class="panel-heading">
                     <div>
-                        <h2>Konum Bul</h2>
+                        <h2>Konum Bul ve Kıble</h2>
                         <p id="qiblaSummary">Seçili konumdan Kâbe merkezine kıble çizgisi çizilir.</p>
                     </div>
                     <button class="primary-button" id="qiblaGeoBtn" type="button">Konumumu Yenile</button>
                 </div>
                 <div class="qibla-layout">
-                    <div id="qiblaMap" aria-label="Kâbe yönü haritası"></div>
+                    <div class="map-container-relative qibla-map-wrapper">
+                        <div id="qiblaMap" aria-label="Kâbe yönü haritası"></div>
+                    </div>
                     <div class="qibla-card">
                         <div class="qibla-compass">
                             <div class="qibla-arrow" id="qiblaArrow">☾</div>
                         </div>
-                        <div>
+                        <div class="qibla-metrics-box">
                             <span>Kıble Açısı</span>
                             <strong id="qiblaBearing">--°</strong>
                             <p id="qiblaDistance">Mesafe hesaplanıyor</p>
+                        </div>
+                        <hr class="card-divider">
+                        <div class="qibla-rotation-group">
+                            <span class="rotation-label">Harita Yönünü Döndür</span>
+                            <div class="rotation-slider-row">
+                                <button type="button" class="rotation-step-btn" id="rotateLeftBtn" title="Sola döndür">↺</button>
+                                <input type="range" id="qiblaMapRotation" min="0" max="360" value="0" aria-label="Harita döndürme açısı">
+                                <button type="button" class="rotation-step-btn" id="rotateRightBtn" title="Sağa döndür">↻</button>
+                            </div>
+                            <div class="qibla-actions-row">
+                                <button class="primary-button compact" id="alignQiblaBtn" type="button">✨ Haritayı Kıbleye Hizala</button>
+                                <button class="secondary-button compact" id="resetRotationBtn" type="button">Kuzeyi Göster</button>
+                            </div>
                         </div>
                     </div>
                 </div>
