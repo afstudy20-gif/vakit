@@ -649,6 +649,146 @@ select:disabled {
     text-shadow: 0 0 10px rgba(223, 177, 38, 0.15);
 }
 
+.eid-prayer-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: 12px;
+    background: rgba(6, 182, 212, 0.08);
+}
+
+.eid-prayer-info[hidden] {
+    display: none;
+}
+
+.eid-prayer-info span,
+.eid-prayer-info p {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.eid-prayer-info span {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.eid-prayer-info strong {
+    display: block;
+    color: var(--ink);
+    font-weight: 800;
+}
+
+.eid-prayer-info > div:first-child strong {
+    margin: 4px 0;
+    font-size: 1rem;
+}
+
+.eid-prayer-time {
+    min-width: 92px;
+    text-align: right;
+}
+
+.eid-prayer-time strong {
+    color: var(--brand);
+    font-size: 1.35rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.religious-dates-info {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-soft);
+}
+
+.religious-dates-info[hidden] {
+    display: none;
+}
+
+.religious-dates-heading {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.religious-date-today {
+    padding: 12px;
+    border: 1px solid rgba(223, 177, 38, 0.35);
+    border-radius: 10px;
+    background: var(--accent-soft);
+    margin-bottom: 10px;
+}
+
+.religious-date-today span,
+.religious-date-row span,
+.religious-date-row em {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.religious-date-today span {
+    display: block;
+    color: var(--brand);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.religious-date-today strong,
+.religious-date-row strong {
+    display: block;
+    color: var(--ink);
+    font-weight: 800;
+}
+
+.religious-date-today strong {
+    margin: 4px 0;
+    font-size: 1rem;
+}
+
+.religious-date-today p {
+    color: var(--muted);
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.religious-date-upcoming {
+    display: grid;
+    gap: 8px;
+}
+
+.religious-date-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+}
+
+.religious-date-row:first-child {
+    border-top: 0;
+}
+
+.religious-date-row em {
+    flex: 0 0 auto;
+    color: var(--brand);
+    text-align: right;
+}
+
 /* Weather Panel */
 .weather-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1686,6 +1826,32 @@ select:disabled {
     .prayer-time strong {
         font-size: 1.05rem !important;
         margin-top: 2px !important;
+    }
+
+    .eid-prayer-info {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px !important;
+    }
+
+    .eid-prayer-time {
+        width: 100%;
+        text-align: left;
+    }
+
+    .religious-dates-info {
+        padding: 10px !important;
+    }
+
+    .religious-date-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .religious-date-row em {
+        text-align: left;
     }
 
     .prayer-date {

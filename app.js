@@ -41,6 +41,21 @@ const PRAYERS = [
     ['Aksam', 'Akşam'],
     ['Yatsi', 'Yatsı']
 ];
+const EID_PRAYER_OFFSET_MINUTES = 50;
+const HIJRI_MONTH_NAMES = {
+    1: 'muharrem',
+    2: 'safer',
+    3: 'rebiulevvel',
+    4: 'rebiulahir',
+    5: 'cemaziyelevvel',
+    6: 'cemaziyelahir',
+    7: 'recep',
+    8: 'saban',
+    9: 'ramazan',
+    10: 'sevval',
+    11: 'zilkade',
+    12: 'zilhicce'
+};
 
 const DEFAULT_LOCATION = {
     cityId: '539',
@@ -121,6 +136,8 @@ function cacheDom() {
     el.nextPrayerName = document.getElementById('nextPrayerName');
     el.countdown = document.getElementById('countdown');
     el.prayerGrid = document.getElementById('prayerGrid');
+    el.eidPrayerInfo = document.getElementById('eidPrayerInfo');
+    el.religiousDatesInfo = document.getElementById('religiousDatesInfo');
     el.topbarDate = document.getElementById('topbarDate');
     el.topbarLocation = document.getElementById('topbarLocation');
     el.themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -479,6 +496,8 @@ function pickPrayerDay(days) {
 function renderPrayerTimes() {
     if (!state.todayPrayer) {
         el.prayerGrid.innerHTML = '<div class="empty-state">Vakit bilgisi alınamadı.</div>';
+        if (el.eidPrayerInfo) el.eidPrayerInfo.hidden = true;
+        if (el.religiousDatesInfo) el.religiousDatesInfo.hidden = true;
         return;
     }
 
@@ -489,6 +508,193 @@ function renderPrayerTimes() {
             <strong>${state.todayPrayer[key] || '--:--'}</strong>
         </div>
     `).join('');
+    renderEidPrayerInfo();
+    renderReligiousDatesInfo();
+}
+
+function renderEidPrayerInfo() {
+    const eid = findVisibleEidPrayer();
+    if (!el.eidPrayerInfo || !eid) {
+        if (el.eidPrayerInfo) el.eidPrayerInfo.hidden = true;
+        return;
+    }
+
+    el.eidPrayerInfo.hidden = false;
+    el.eidPrayerInfo.innerHTML = `
+        <div>
+            <span>Bayram namazı</span>
+            <strong>${escapeHtml(eid.name)}</strong>
+            <p>${escapeHtml(eid.dateLabel)} · ${escapeHtml(eid.hijriLabel)}</p>
+        </div>
+        <div class="eid-prayer-time">
+            <strong>${eid.time}</strong>
+            <span>Güneş +${EID_PRAYER_OFFSET_MINUTES} dk</span>
+        </div>
+    `;
+}
+
+function findVisibleEidPrayer() {
+    if (!Array.isArray(state.prayerDays) || state.prayerDays.length === 0) return null;
+    const today = startOfToday();
+    const eidDay = state.prayerDays.find(day => {
+        const date = new Date(day.MiladiTarihUzunIso8601);
+        return isEidPrayerDay(day) && date >= today;
+    });
+    if (!eidDay) return null;
+
+    const sunrise = eidDay.Gunes || eidDay.GunesDogus;
+    const time = addMinutesToTime(sunrise, EID_PRAYER_OFFSET_MINUTES);
+    if (!time) return null;
+
+    return {
+        name: eidPrayerName(eidDay),
+        time,
+        dateLabel: eidDay.MiladiTarihUzun || eidDay.MiladiTarihKisa || '',
+        hijriLabel: eidDay.HicriTarihUzun || ''
+    };
+}
+
+function isEidPrayerDay(day) {
+    const hijri = normalizeText(day.HicriTarihUzun);
+    return hijri.startsWith('1sevval') || hijri.startsWith('10zilhicce');
+}
+
+function eidPrayerName(day) {
+    const hijri = normalizeText(day.HicriTarihUzun);
+    if (hijri.startsWith('1sevval')) return 'Ramazan Bayramı Namazı';
+    if (hijri.startsWith('10zilhicce')) return 'Kurban Bayramı Namazı';
+    return 'Bayram Namazı';
+}
+
+function addMinutesToTime(time, minutes) {
+    const match = String(time || '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return '';
+    const date = new Date();
+    date.setHours(Number(match[1]), Number(match[2]) + minutes, 0, 0);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function renderReligiousDatesInfo() {
+    const dates = collectVisibleReligiousDates();
+    if (!el.religiousDatesInfo || (dates.today.length === 0 && dates.upcoming.length === 0)) {
+        if (el.religiousDatesInfo) el.religiousDatesInfo.hidden = true;
+        return;
+    }
+
+    const todayHtml = dates.today.map(item => `
+        <div class="religious-date-today">
+            <span>Bugün</span>
+            <strong>${escapeHtml(item.name)}</strong>
+            <p>${escapeHtml(item.dateLabel)} · ${escapeHtml(item.hijriLabel)}</p>
+        </div>
+    `).join('');
+
+    const upcomingHtml = dates.upcoming.length > 0 ? `
+        <div class="religious-date-upcoming">
+            ${dates.upcoming.map(item => `
+                <div class="religious-date-row">
+                    <div>
+                        <strong>${escapeHtml(item.name)}</strong>
+                        <span>${escapeHtml(item.dateLabel)} · ${escapeHtml(item.hijriLabel)}</span>
+                    </div>
+                    <em>${escapeHtml(item.relativeLabel)}</em>
+                </div>
+            `).join('')}
+        </div>
+    ` : '';
+
+    el.religiousDatesInfo.hidden = false;
+    el.religiousDatesInfo.innerHTML = `
+        <div class="religious-dates-heading">Önemli dini tarihler</div>
+        ${todayHtml}
+        ${upcomingHtml}
+    `;
+}
+
+function collectVisibleReligiousDates() {
+    const result = { today: [], upcoming: [] };
+    if (!Array.isArray(state.prayerDays) || state.prayerDays.length === 0) return result;
+
+    const today = startOfToday();
+    const todayKey = formatDateKey(today);
+    const seen = new Set();
+
+    state.prayerDays.forEach(day => {
+        const event = religiousEventForDay(day);
+        const date = new Date(day.MiladiTarihUzunIso8601);
+        if (!event || isNaN(date) || date < today) return;
+
+        const key = `${event.name}:${formatDateKey(date)}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const item = {
+            name: event.name,
+            dateLabel: day.MiladiTarihUzun || day.MiladiTarihKisa || '',
+            hijriLabel: day.HicriTarihUzun || '',
+            relativeLabel: relativeDayLabel(date)
+        };
+
+        if (formatDateKey(date) === todayKey) {
+            result.today.push(item);
+        } else if (result.upcoming.length < 5) {
+            result.upcoming.push(item);
+        }
+    });
+
+    return result;
+}
+
+function religiousEventForDay(day) {
+    const hijri = parseHijriDate(day);
+    if (!hijri) return null;
+
+    if (hijri.month === 'muharrem' && hijri.day === 1) return { name: 'Hicri Yılbaşı' };
+    if (hijri.month === 'muharrem' && hijri.day === 10) return { name: 'Aşure Günü' };
+    if (hijri.month === 'rebiulevvel' && hijri.day === 12) return { name: 'Mevlid Kandili' };
+    if (isRegaibKandili(day, hijri)) return { name: 'Regaib Kandili' };
+    if (hijri.month === 'recep' && hijri.day === 27) return { name: 'Miraç Kandili' };
+    if (hijri.month === 'saban' && hijri.day === 15) return { name: 'Berat Kandili' };
+    if (hijri.month === 'ramazan' && hijri.day === 1) return { name: 'Ramazan Başlangıcı' };
+    if (hijri.month === 'ramazan' && hijri.day === 27) return { name: 'Kadir Gecesi' };
+    if (hijri.month === 'sevval' && hijri.day >= 1 && hijri.day <= 3) return { name: `Ramazan Bayramı ${hijri.day}. Günü` };
+    if (hijri.month === 'zilhicce' && hijri.day === 9) return { name: 'Kurban Arifesi' };
+    if (hijri.month === 'zilhicce' && hijri.day >= 10 && hijri.day <= 13) return { name: `Kurban Bayramı ${hijri.day - 9}. Günü` };
+    return null;
+}
+
+function parseHijriDate(day) {
+    const shortMatch = String(day.HicriTarihKisa || '').match(/^(\d{1,2})\.(\d{1,2})\./);
+    if (shortMatch) {
+        return {
+            day: Number(shortMatch[1]),
+            month: HIJRI_MONTH_NAMES[Number(shortMatch[2])] || ''
+        };
+    }
+
+    const longText = String(day.HicriTarihUzun || '').trim();
+    const longMatch = longText.match(/^(\d{1,2})\s+([^\d]+)/);
+    if (!longMatch) return null;
+
+    return {
+        day: Number(longMatch[1]),
+        month: normalizeText(longMatch[2])
+    };
+}
+
+function isRegaibKandili(day, hijri) {
+    const date = new Date(day.MiladiTarihUzunIso8601);
+    return hijri.month === 'recep'
+        && hijri.day <= 7
+        && !isNaN(date)
+        && date.getDay() === 4;
+}
+
+function relativeDayLabel(date) {
+    const diffDays = Math.round((startOfDay(date).getTime() - startOfToday().getTime()) / 86400000);
+    if (diffDays === 0) return 'Bugün';
+    if (diffDays === 1) return 'Yarın';
+    return `${diffDays} gün kaldı`;
 }
 
 function updateNextPrayer() {
@@ -1296,6 +1502,12 @@ function normalizeDateKey(value) {
 
 function startOfToday() {
     const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function startOfDay(value) {
+    const date = new Date(value);
     date.setHours(0, 0, 0, 0);
     return date;
 }

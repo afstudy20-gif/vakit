@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=30">
+    <link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
     <div class="app-shell">
@@ -41,7 +41,7 @@
         <nav class="app-tabs" aria-label="Uygulama sekmeleri">
             <button class="active" type="button" data-tab="vakit">Vakitler</button>
             <button type="button" data-tab="camiler">Camiler</button>
-            <button type="button" data-tab="qibla">Konum Bul</button>
+            <button type="button" data-tab="qibla">Kıble Bul</button>
         </nav>
 
         <main class="dashboard">
@@ -60,6 +60,8 @@
                 </div>
 
                 <div class="prayer-grid" id="prayerGrid"></div>
+                <div class="eid-prayer-info" id="eidPrayerInfo" hidden></div>
+                <div class="religious-dates-info" id="religiousDatesInfo" hidden></div>
             </section>
 
             <section class="location-panel tab-panel" data-tab-panel="vakit">
@@ -113,7 +115,7 @@
             <section class="qibla-panel tab-panel" id="qiblaPanel" data-tab-panel="qibla" hidden>
                 <div class="panel-heading">
                     <div>
-                        <h2>Konum Bul ve Kıble</h2>
+                        <h2>Kıble Bul</h2>
                         <p id="qiblaSummary">Seçili konumdan Kâbe merkezine kıble çizgisi çizilir.</p>
                     </div>
                     <button class="primary-button" id="qiblaGeoBtn" type="button">Konumumu Yenile</button>
@@ -178,7 +180,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="vendor/leaflet/leaflet.js"></script>
-    <script src="mosques.js?v=30"></script>
-    <script src="app.js?v=30"></script>
+    <script src="mosques.js?v=33"></script>
+    <script src="app.js?v=33"></script>
 </body>
 </html>
