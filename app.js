@@ -840,9 +840,12 @@ function initQiblaMap() {
 
     state.qiblaMap = L.map('qiblaMap', {
         center: [state.coords.lat, state.coords.lon],
-        zoom: 4,
+        zoom: 18,
         minZoom: 2,
-        maxZoom: 19
+        maxZoom: 19,
+        dragging: false,
+        scrollWheelZoom: true,
+        touchZoom: true
     });
 
     state.qiblaStreetTile = L.tileLayer(getStreetTileUrl(), {
@@ -877,10 +880,10 @@ function renderQibla() {
         state.qiblaLine.setLatLngs([origin, kaaba]);
     } else {
         state.qiblaLine = L.polyline([origin, kaaba], {
-            color: '#176b5b',
-            weight: 4,
-            opacity: 0.82,
-            dashArray: '10 8'
+            color: '#dfb126',
+            weight: 5,
+            opacity: 0.9,
+            dashArray: '12 8'
         }).addTo(state.qiblaMap);
     }
 
@@ -903,8 +906,9 @@ function renderQibla() {
         }).bindPopup('Kâbe merkezi').addTo(state.qiblaMap);
     }
 
-    state.qiblaMap.fitBounds([origin, kaaba], { padding: [34, 34] });
-    el.qiblaSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} noktasından Kâbe merkezine çizgi çizildi.`;
+    const zoomLevel = state.qiblaMap.getZoom() || 18;
+    state.qiblaMap.setView(origin, zoomLevel);
+    el.qiblaSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} noktasından Kâbe yönüne hat çizildi.`;
     el.qiblaBearing.textContent = `${Math.round(bearing)}°`;
     el.qiblaDistance.textContent = `${formatDistance(distance)} uzaklık`;
     el.qiblaArrow.style.transform = `rotate(${bearing}deg)`;
