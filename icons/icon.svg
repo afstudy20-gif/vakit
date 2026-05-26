@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vakit ve Cami">
+    <rect width="512" height="512" rx="96" fill="#176b5b"/>
+    <circle cx="256" cy="256" r="154" fill="#f7faf8"/>
+    <circle cx="312" cy="220" r="152" fill="#176b5b"/>
+    <circle cx="352" cy="128" r="22" fill="#c66a2d"/>
+    <path d="M352 128l58 24" stroke="#c66a2d" stroke-width="18" stroke-linecap="round"/>
+</svg>

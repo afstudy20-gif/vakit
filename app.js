@@ -1,317 +1,1149 @@
-// =============================================
-// Türkiye Camileri Ansiklopedisi - Ana Uygulama
-// =============================================
+const PRAYER_API = 'https://ezanvakti.emushaf.net';
+const COUNTRY_ID = '2';
+const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
+const GEOCODE_API = 'https://geocoding-api.open-meteo.com/v1/search';
+const REVERSE_API = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
+const OVERPASS_ENDPOINTS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter'
+];
 
-let map;
-let markers = [];
-let markerGroup;
-let filteredData = [...mosqueData];
-let detailMap = null;
+const KAABA = { lat: 21.422487, lon: 39.826206 };
+const DATA_CACHE_PREFIX = 'vakit-data:';
 
-// Custom mosque icon
-const mosqueIcon = L.divIcon({
-    html: '<div style="background:#1a6b4a;color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">&#9770;</div>',
-    className: 'custom-mosque-icon',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
-});
+const PRAYERS = [
+    ['Imsak', 'İmsak'],
+    ['Gunes', 'Güneş'],
+    ['Ogle', 'Öğle'],
+    ['Ikindi', 'İkindi'],
+    ['Aksam', 'Akşam'],
+    ['Yatsi', 'Yatsı']
+];
 
-const mosqueIconActive = L.divIcon({
-    html: '<div style="background:#e74c3c;color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(231,76,60,0.4);border:2px solid white;">&#9770;</div>',
-    className: 'custom-mosque-icon-active',
-    iconSize: [38, 38],
-    iconAnchor: [19, 19],
-    popupAnchor: [0, -19]
-});
+const DEFAULT_LOCATION = {
+    cityId: '539',
+    districtId: '9541',
+    cityName: 'İSTANBUL',
+    districtName: 'İSTANBUL',
+    coords: { lat: 41.0082, lon: 28.9784 }
+};
 
-// Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
-    initMap();
-    populateCityFilter();
-    renderList(mosqueData);
-    addMarkers(mosqueData);
+const state = {
+    cities: [],
+    districts: [],
+    selected: { ...DEFAULT_LOCATION },
+    prayerDays: [],
+    todayPrayer: null,
+    nextPrayer: null,
+    coords: { ...DEFAULT_LOCATION.coords },
+    map: null,
+    markerLayer: null,
+    userMarker: null,
+    qiblaMap: null,
+    qiblaLine: null,
+    qiblaOriginMarker: null,
+    kaabaMarker: null,
+    nearestMosques: [],
+    activeTab: 'vakit',
+    deferredInstallPrompt: null
+};
+
+const el = {};
+
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+    cacheDom();
     bindEvents();
-    updateResultCount(mosqueData.length);
-});
+    initMap();
+    startClock();
+    await registerServiceWorker();
+    await loadCities();
+    await restoreOrDefaultLocation();
+    applyInitialTab();
+    updateAll();
+}
 
-// Initialize Leaflet Map
+function cacheDom() {
+    el.syncStatus = document.getElementById('syncStatus');
+    el.headerWeather = document.getElementById('headerWeather');
+    el.appRefreshBtn = document.getElementById('appRefreshBtn');
+    el.installBtn = document.getElementById('installBtn');
+    el.geoBtn = document.getElementById('geoBtn');
+    el.refreshBtn = document.getElementById('refreshBtn');
+    el.citySelect = document.getElementById('citySelect');
+    el.districtSelect = document.getElementById('districtSelect');
+    el.locationSummary = document.getElementById('locationSummary');
+    el.currentClock = document.getElementById('currentClock');
+    el.prayerDate = document.getElementById('prayerDate');
+    el.nextPrayerName = document.getElementById('nextPrayerName');
+    el.countdown = document.getElementById('countdown');
+    el.prayerGrid = document.getElementById('prayerGrid');
+    el.weatherSummary = document.getElementById('weatherSummary');
+    el.weatherGrid = document.getElementById('weatherGrid');
+    el.mosqueSummary = document.getElementById('mosqueSummary');
+    el.mosqueList = document.getElementById('mosqueList');
+    el.nearestRouteBtn = document.getElementById('nearestRouteBtn');
+    el.turkeySearchInput = document.getElementById('turkeySearchInput');
+    el.turkeySearchBtn = document.getElementById('turkeySearchBtn');
+    el.nearbySearchBtn = document.getElementById('nearbySearchBtn');
+    el.qiblaPanel = document.getElementById('qiblaPanel');
+    el.qiblaGeoBtn = document.getElementById('qiblaGeoBtn');
+    el.qiblaSummary = document.getElementById('qiblaSummary');
+    el.qiblaBearing = document.getElementById('qiblaBearing');
+    el.qiblaDistance = document.getElementById('qiblaDistance');
+    el.qiblaArrow = document.getElementById('qiblaArrow');
+    el.tabButtons = [...document.querySelectorAll('[data-tab]')];
+    el.tabPanels = [...document.querySelectorAll('[data-tab-panel]')];
+    el.toast = document.getElementById('toast');
+}
+
+function bindEvents() {
+    el.citySelect.addEventListener('change', async () => {
+        const city = state.cities.find(item => item.SehirID === el.citySelect.value);
+        if (!city) return;
+        state.selected.cityId = city.SehirID;
+        state.selected.cityName = city.SehirAdi;
+        state.selected.districtId = '';
+        state.selected.districtName = '';
+        await loadDistricts(city.SehirID);
+    });
+
+    el.districtSelect.addEventListener('change', async () => {
+        const district = state.districts.find(item => item.IlceID === el.districtSelect.value);
+        if (!district) return;
+        state.selected.districtId = district.IlceID;
+        state.selected.districtName = district.IlceAdi;
+        await applyManualSelection();
+    });
+
+    el.refreshBtn.addEventListener('click', updateAll);
+    el.geoBtn.addEventListener('click', useCurrentLocation);
+    el.qiblaGeoBtn.addEventListener('click', useCurrentLocation);
+    el.appRefreshBtn.addEventListener('click', refreshApp);
+    el.installBtn.addEventListener('click', installPwa);
+    el.turkeySearchBtn.addEventListener('click', searchTurkeyMosques);
+    el.nearbySearchBtn.addEventListener('click', loadNearbyMosques);
+    el.turkeySearchInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') searchTurkeyMosques();
+    });
+    el.tabButtons.forEach(button => {
+        button.addEventListener('click', () => setActiveTab(button.dataset.tab));
+    });
+
+    window.addEventListener('beforeinstallprompt', event => {
+        event.preventDefault();
+        state.deferredInstallPrompt = event;
+        el.installBtn.hidden = false;
+    });
+    window.addEventListener('hashchange', applyInitialTab);
+}
+
 function initMap() {
-    map = L.map('map', {
-        center: [39.0, 35.0],
-        zoom: 6,
-        minZoom: 5,
-        maxZoom: 18
+    state.map = L.map('map', {
+        center: [state.coords.lat, state.coords.lon],
+        zoom: 14,
+        minZoom: 6,
+        maxZoom: 19
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19
-    }).addTo(map);
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(state.map);
 
-    markerGroup = L.layerGroup().addTo(map);
+    state.markerLayer = L.layerGroup().addTo(state.map);
+    updateUserMarker();
 }
 
-// Populate city filter dropdown
-function populateCityFilter() {
-    const cities = [...new Set(mosqueData.map(m => m.city))].sort((a, b) => a.localeCompare(b, 'tr'));
-    const cityFilter = document.getElementById('cityFilter');
-    cities.forEach(city => {
-        const option = document.createElement('option');
-        option.value = city;
-        option.textContent = city;
-        cityFilter.appendChild(option);
-    });
+async function loadCities() {
+    setStatus('İller alınıyor');
+    try {
+        state.cities = await fetchJsonCached(`${PRAYER_API}/sehirler/${COUNTRY_ID}`, 'cities');
+        state.cities.sort((a, b) => a.SehirAdi.localeCompare(b.SehirAdi, 'tr'));
+        el.citySelect.innerHTML = state.cities.map(city => (
+            `<option value="${city.SehirID}">${escapeHtml(titleCase(city.SehirAdi))}</option>`
+        )).join('');
+    } catch (error) {
+        state.cities = [{ SehirAdi: DEFAULT_LOCATION.cityName, SehirID: DEFAULT_LOCATION.cityId }];
+        el.citySelect.innerHTML = `<option value="${DEFAULT_LOCATION.cityId}">${titleCase(DEFAULT_LOCATION.cityName)}</option>`;
+        showToast('İl listesi çevrimdışı yedekle açıldı.');
+        setStatus('Çevrimdışı');
+    }
 }
 
-// Render mosque list
-function renderList(data) {
-    const container = document.getElementById('mosqueList');
+async function loadDistricts(cityId, selectedDistrictId = '') {
+    el.districtSelect.disabled = true;
+    el.districtSelect.innerHTML = '<option value="">İlçeler yükleniyor...</option>';
 
-    if (data.length === 0) {
-        container.innerHTML = `
-            <div class="no-results">
-                <h3>Sonuç bulunamadı</h3>
-                <p>Arama kriterlerinizi değiştirerek tekrar deneyin.</p>
-            </div>`;
+    try {
+        state.districts = await fetchJsonCached(`${PRAYER_API}/ilceler/${cityId}`, `districts:${cityId}`);
+    } catch (error) {
+        state.districts = [{
+            IlceAdi: state.selected.districtName || DEFAULT_LOCATION.districtName,
+            IlceID: state.selected.districtId || DEFAULT_LOCATION.districtId
+        }];
+        showToast('İlçe listesi çevrimdışı yedekle açıldı.');
+    }
+    state.districts.sort((a, b) => a.IlceAdi.localeCompare(b.IlceAdi, 'tr'));
+
+    el.districtSelect.innerHTML = state.districts.map(district => (
+        `<option value="${district.IlceID}">${escapeHtml(titleCase(district.IlceAdi))}</option>`
+    )).join('');
+
+    const fallback = state.districts.find(item => item.IlceID === selectedDistrictId)
+        || state.districts.find(item => normalizeText(item.IlceAdi) === normalizeText(state.selected.cityName))
+        || state.districts[0];
+
+    if (fallback) {
+        el.districtSelect.value = fallback.IlceID;
+        state.selected.districtId = fallback.IlceID;
+        state.selected.districtName = fallback.IlceAdi;
+    }
+
+    el.districtSelect.disabled = false;
+}
+
+async function restoreOrDefaultLocation() {
+    const saved = readSavedLocation();
+    const location = saved || DEFAULT_LOCATION;
+    const city = state.cities.find(item => item.SehirID === location.cityId)
+        || state.cities.find(item => normalizeText(item.SehirAdi) === normalizeText(location.cityName))
+        || state.cities.find(item => item.SehirID === DEFAULT_LOCATION.cityId);
+
+    if (!city) return;
+
+    state.selected.cityId = city.SehirID;
+    state.selected.cityName = city.SehirAdi;
+    el.citySelect.value = city.SehirID;
+    await loadDistricts(city.SehirID, location.districtId);
+    state.coords = location.coords || DEFAULT_LOCATION.coords;
+    updateLocationSummary(saved ? 'Kayıtlı seçim' : 'Varsayılan seçim');
+}
+
+async function applyManualSelection() {
+    setStatus('Konum hazırlanıyor');
+    const coords = await getCoordsForSelection(state.selected.districtName, state.selected.cityName);
+    state.coords = coords || getFallbackCoords(state.selected.cityName, state.selected.districtName);
+    saveLocation();
+    updateLocationSummary('Elle seçildi');
+    updateAll();
+}
+
+async function useCurrentLocation() {
+    if (!navigator.geolocation) {
+        showToast('Tarayıcı konum özelliğini desteklemiyor. İl ve ilçe seçebilirsiniz.');
         return;
     }
 
-    container.innerHTML = data.map(mosque => `
-        <div class="mosque-card" data-id="${mosque.id}" onclick="handleCardClick(${mosque.id})">
-            <div class="card-header">
-                <h3>${mosque.name}</h3>
-                <span class="card-badge">${mosque.period}</span>
-            </div>
-            <div class="card-city">${mosque.city} / ${mosque.district}</div>
-            <p class="card-desc">${mosque.description}</p>
-            <div class="card-meta">
-                <span>&#128197; ${mosque.year}</span>
-                ${mosque.architect !== 'Bilinmiyor' ? `<span>&#9997; ${mosque.architect}</span>` : ''}
-                ${mosque.minarets > 0 ? `<span>${mosque.minarets} Minare</span>` : ''}
-            </div>
-            <button class="btn-detail" onclick="event.stopPropagation(); openDetail(${mosque.id})">Detaylı Bilgi</button>
+    setStatus('Konum bekleniyor');
+    navigator.geolocation.getCurrentPosition(
+        async position => {
+            state.coords = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            };
+            await matchLocationToDistrict();
+            saveLocation();
+            updateLocationSummary('Canlı konum');
+            updateAll();
+        },
+        () => {
+            showToast('Konum izni verilmedi. İl ve ilçe seçimiyle vakitleri kullanabilirsiniz.');
+            setStatus('Elle seçim hazır');
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
+    );
+}
+
+async function matchLocationToDistrict() {
+    let reverse;
+    try {
+        reverse = await fetchJson(`${REVERSE_API}?latitude=${state.coords.lat}&longitude=${state.coords.lon}&localityLanguage=tr`);
+    } catch (error) {
+        showToast('Konum adı çevrimdışı alınamadı; son seçili il/ilçe kullanılıyor.');
+        return;
+    }
+    const cityName = reverse.principalSubdivision || reverse.city || DEFAULT_LOCATION.cityName;
+    const city = findByNormalized(state.cities, 'SehirAdi', cityName) || state.cities.find(item => item.SehirID === DEFAULT_LOCATION.cityId);
+
+    if (!city) return;
+
+    state.selected.cityId = city.SehirID;
+    state.selected.cityName = city.SehirAdi;
+    el.citySelect.value = city.SehirID;
+    await loadDistricts(city.SehirID);
+
+    const names = collectReverseNames(reverse);
+    const district = state.districts.find(item => names.some(name => isCloseName(item.IlceAdi, name)))
+        || state.districts.find(item => normalizeText(item.IlceAdi) === normalizeText(city.SehirAdi))
+        || state.districts[0];
+
+    if (district) {
+        state.selected.districtId = district.IlceID;
+        state.selected.districtName = district.IlceAdi;
+        el.districtSelect.value = district.IlceID;
+    }
+}
+
+async function updateAll() {
+    if (!state.selected.districtId) return;
+    setStatus('Güncelleniyor');
+    updateUserMarker();
+
+    await Promise.allSettled([
+        loadPrayerTimes(),
+        loadWeather(),
+        loadNearbyMosques()
+    ]);
+
+    renderQibla();
+    updateLocationSummary('Güncel');
+    setStatus('Güncel');
+}
+
+async function loadPrayerTimes() {
+    try {
+        state.prayerDays = await fetchJsonCached(`${PRAYER_API}/vakitler/${state.selected.districtId}`, `prayers:${state.selected.districtId}`);
+    } catch (error) {
+        showToast('Vakitler için çevrimdışı kayıt bulunamadı. İnternette bir kez güncelleyin.');
+        return;
+    }
+    state.todayPrayer = pickPrayerDay(state.prayerDays);
+    renderPrayerTimes();
+    updateNextPrayer();
+}
+
+function pickPrayerDay(days) {
+    const today = formatDateKey(new Date());
+    return days.find(day => normalizeDateKey(day.MiladiTarihKisa) === today)
+        || days.find(day => new Date(day.MiladiTarihUzunIso8601) >= startOfToday())
+        || days[0];
+}
+
+function renderPrayerTimes() {
+    if (!state.todayPrayer) {
+        el.prayerGrid.innerHTML = '<div class="empty-state">Vakit bilgisi alınamadı.</div>';
+        return;
+    }
+
+    el.prayerDate.textContent = `${state.todayPrayer.MiladiTarihUzun} · ${state.todayPrayer.HicriTarihUzun}`;
+    el.prayerGrid.innerHTML = PRAYERS.map(([key, label]) => `
+        <div class="prayer-time" data-prayer="${key}">
+            <span>${label}</span>
+            <strong>${state.todayPrayer[key] || '--:--'}</strong>
         </div>
     `).join('');
 }
 
-// Add markers to the map
-function addMarkers(data) {
-    markerGroup.clearLayers();
-    markers = [];
+function updateNextPrayer() {
+    if (!state.todayPrayer) return;
 
-    data.forEach(mosque => {
-        const marker = L.marker([mosque.lat, mosque.lng], { icon: mosqueIcon })
-            .bindPopup(`
-                <div class="popup-content">
-                    <h4>${mosque.name}</h4>
-                    <p>${mosque.city} / ${mosque.district}</p>
-                    <p>${mosque.period} - ${mosque.year}</p>
-                    <span class="popup-link" onclick="openDetail(${mosque.id})">Detaylı Bilgi &rarr;</span>
-                </div>
-            `);
+    const now = new Date();
+    const prayerEntries = buildPrayerEntries(now, state.todayPrayer);
+    let next = prayerEntries.find(item => item.date > now);
 
-        marker.mosqueId = mosque.id;
-        markers.push(marker);
-        markerGroup.addLayer(marker);
-    });
-
-    // Fit map to show all markers
-    if (data.length > 0) {
-        const group = L.featureGroup(markers);
-        map.fitBounds(group.getBounds().pad(0.1));
-    }
-}
-
-// Handle card click - highlight on map
-function handleCardClick(id) {
-    // Remove active state from all cards
-    document.querySelectorAll('.mosque-card').forEach(c => c.classList.remove('active'));
-
-    // Add active state to clicked card
-    const card = document.querySelector(`.mosque-card[data-id="${id}"]`);
-    if (card) card.classList.add('active');
-
-    // Find and highlight marker
-    const mosque = mosqueData.find(m => m.id === id);
-    if (!mosque) return;
-
-    // Reset all icons
-    markers.forEach(m => m.setIcon(mosqueIcon));
-
-    // Find the marker and highlight it
-    const targetMarker = markers.find(m => m.mosqueId === id);
-    if (targetMarker) {
-        targetMarker.setIcon(mosqueIconActive);
-        map.setView([mosque.lat, mosque.lng], 13, { animate: true });
-        targetMarker.openPopup();
-    }
-}
-
-// Open detail modal
-function openDetail(id) {
-    const mosque = mosqueData.find(m => m.id === id);
-    if (!mosque) return;
-
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${mosque.lat},${mosque.lng}`;
-
-    const modalBody = document.getElementById('modalBody');
-    modalBody.innerHTML = `
-        <h2>${mosque.name}</h2>
-        <div class="modal-city">&#128205; ${mosque.city} / ${mosque.district}</div>
-        <span class="modal-badge">${mosque.period} Dönemi</span>
-
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="label">Yapım Yılı</div>
-                <div class="value">${mosque.year}</div>
-            </div>
-            <div class="info-item">
-                <div class="label">Mimar</div>
-                <div class="value">${mosque.architect}</div>
-            </div>
-            <div class="info-item">
-                <div class="label">Mimari Üslup</div>
-                <div class="value">${mosque.style}</div>
-            </div>
-            <div class="info-item">
-                <div class="label">Minare Sayısı</div>
-                <div class="value">${mosque.minarets}</div>
-            </div>
-            ${mosque.capacity ? `
-            <div class="info-item">
-                <div class="label">Kapasite</div>
-                <div class="value">${mosque.capacity.toLocaleString('tr-TR')} kişi</div>
-            </div>` : ''}
-            ${mosque.domes !== undefined ? `
-            <div class="info-item">
-                <div class="label">Kubbe Sayısı</div>
-                <div class="value">${mosque.domes}</div>
-            </div>` : ''}
-        </div>
-
-        <div class="modal-section">
-            <h4>Genel Bilgi</h4>
-            <p>${mosque.description}</p>
-        </div>
-
-        ${mosque.history ? `
-        <div class="modal-section">
-            <h4>Tarihçe</h4>
-            <p>${mosque.history}</p>
-        </div>` : ''}
-
-        ${mosque.features && mosque.features.length > 0 ? `
-        <div class="modal-section">
-            <h4>Öne Çıkan Özellikler</h4>
-            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
-                ${mosque.features.map(f => `<span style="background:#e8f5e9;color:#1a6b4a;padding:0.3rem 0.7rem;border-radius:20px;font-size:0.8rem;font-weight:500;">${f}</span>`).join('')}
-            </div>
-        </div>` : ''}
-
-        <div class="modal-section">
-            <h4>Konum</h4>
-            <p>Enlem: ${mosque.lat} | Boylam: ${mosque.lng}</p>
-            <div id="detailMap" class="modal-map"></div>
-            <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-google-maps">
-                &#128506; Google Haritalar'da Aç
-            </a>
-        </div>
-    `;
-
-    // Show modal
-    document.getElementById('modalOverlay').classList.add('active');
-    document.body.style.overflow = 'hidden';
-
-    // Initialize detail map after DOM is ready
-    setTimeout(() => {
-        if (detailMap) {
-            detailMap.remove();
+    if (!next) {
+        const tomorrow = state.prayerDays.find(day => new Date(day.MiladiTarihUzunIso8601) > startOfToday());
+        if (tomorrow) {
+            next = buildPrayerEntries(addDays(now, 1), tomorrow)[0];
         }
-        detailMap = L.map('detailMap', {
-            center: [mosque.lat, mosque.lng],
-            zoom: 15,
-            zoomControl: true
-        });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap',
-            maxZoom: 19
-        }).addTo(detailMap);
-        L.marker([mosque.lat, mosque.lng], { icon: mosqueIcon }).addTo(detailMap);
-    }, 100);
+    }
+
+    state.nextPrayer = next || prayerEntries[0];
+    el.nextPrayerName.textContent = state.nextPrayer.label;
+
+    document.querySelectorAll('.prayer-time').forEach(card => {
+        card.classList.toggle('active', card.dataset.prayer === state.nextPrayer.key);
+    });
+
+    updateCountdown();
 }
 
-// Close modal
-function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('active');
-    document.body.style.overflow = '';
-    if (detailMap) {
-        detailMap.remove();
-        detailMap = null;
+function updateCountdown() {
+    if (!state.nextPrayer) return;
+    const diff = Math.max(0, state.nextPrayer.date.getTime() - Date.now());
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    el.countdown.textContent = [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':');
+}
+
+async function loadWeather() {
+    const url = new URL(WEATHER_API);
+    url.search = new URLSearchParams({
+        latitude: state.coords.lat,
+        longitude: state.coords.lon,
+        hourly: 'temperature_2m,precipitation_probability,weather_code,wind_speed_10m',
+        forecast_hours: '4',
+        timezone: 'auto'
+    }).toString();
+
+    let weather;
+    try {
+        weather = await fetchJson(url.toString());
+        writeDataCache(`weather:${formatCoord(state.coords.lat)}:${formatCoord(state.coords.lon)}`, weather);
+        writeDataCache('weather:last', weather);
+    } catch (error) {
+        weather = readDataCache(`weather:${formatCoord(state.coords.lat)}:${formatCoord(state.coords.lon)}`) || readDataCache('weather:last');
+        if (!weather) {
+            el.weatherSummary.textContent = 'Çevrimdışı hava kaydı yok.';
+            return;
+        }
+        showToast('Hava durumu son kayıtla gösteriliyor.');
+    }
+    const hours = weather.hourly.time.slice(0, 3).map((time, index) => ({
+        time,
+        temp: weather.hourly.temperature_2m[index],
+        rain: weather.hourly.precipitation_probability[index],
+        code: weather.hourly.weather_code[index],
+        wind: weather.hourly.wind_speed_10m[index]
+    }));
+
+    el.weatherSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} için 3 saatlik görsel tahmin`;
+    renderHeaderWeather(hours[0]);
+    el.weatherGrid.innerHTML = hours.map(hour => `
+        <div class="weather-card" aria-label="${formatHour(hour.time)} ${weatherLabel(hour.code)}, ${Math.round(hour.temp)} derece">
+            <span>${formatHour(hour.time)}</span>
+            <div class="weather-visual">
+                <div class="weather-large-icon">${weatherIcon(hour.code)}</div>
+                <strong>${Math.round(hour.temp)}°</strong>
+            </div>
+            <div class="weather-metrics" aria-label="Yağış ${hour.rain ?? 0}%, rüzgar ${Math.round(hour.wind ?? 0)} kilometre saat">
+                <span title="Yağış">☂ ${hour.rain ?? 0}%</span>
+                <span title="Rüzgar">⇢ ${Math.round(hour.wind ?? 0)}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderHeaderWeather(hour) {
+    if (!hour) return;
+    el.headerWeather.setAttribute('aria-label', `${weatherLabel(hour.code)}, ${Math.round(hour.temp)} derece`);
+    el.headerWeather.innerHTML = `
+        <span class="weather-symbol">${weatherIcon(hour.code)}</span>
+        <span class="weather-temp">${Math.round(hour.temp)}°</span>
+    `;
+}
+
+async function loadNearbyMosques() {
+    el.turkeySearchBtn.disabled = false;
+    el.nearbySearchBtn.disabled = false;
+    state.markerLayer.clearLayers();
+    updateUserMarker();
+
+    const localMosques = getLocalMosques(state.coords, 8);
+    state.nearestMosques = localMosques;
+    renderMosques();
+    renderMosqueMarkers();
+
+    fetchOsmMosques(state.coords, 3000)
+        .then(osmMosques => {
+            const merged = mergeMosques(osmMosques, localMosques).slice(0, 10);
+            if (merged.length === 0) return;
+            state.markerLayer.clearLayers();
+            state.nearestMosques = merged;
+            renderMosques();
+            renderMosqueMarkers();
+        })
+        .catch(() => {
+            showToast('OpenStreetMap yakın cami araması gecikti; yerel cami listesi gösteriliyor.');
+        });
+}
+
+async function searchTurkeyMosques() {
+    const searchText = el.turkeySearchInput.value.trim();
+    const label = searchText || 'cami ve mescit';
+
+    el.turkeySearchBtn.disabled = true;
+    el.nearbySearchBtn.disabled = true;
+    el.mosqueSummary.textContent = `Türkiye genelinde "${label}" aranıyor...`;
+    el.mosqueList.innerHTML = '<div class="empty-state">Türkiye geneli OSM araması yapılıyor. Büyük sorgularda sonuçlar limitli gelir.</div>';
+
+    try {
+        const results = await fetchTurkeyMosques(searchText);
+        state.markerLayer.clearLayers();
+        state.nearestMosques = mergeMosques(results, []).slice(0, 250);
+        renderMosques();
+        renderMosqueMarkers();
+        el.mosqueSummary.textContent = state.nearestMosques.length > 0
+            ? `Türkiye araması: ${state.nearestMosques.length} kayıt gösteriliyor`
+            : 'Türkiye aramasında sonuç bulunamadı.';
+    } catch (error) {
+        const fallback = getTurkeyLocalMosques(searchText, 250);
+        if (fallback.length > 0) {
+            state.markerLayer.clearLayers();
+            state.nearestMosques = fallback;
+            renderMosques();
+            renderMosqueMarkers();
+            el.mosqueSummary.textContent = `Türkiye araması: yerel listeden ${fallback.length} kayıt gösteriliyor`;
+            showToast('OSM Türkiye sorgusu gecikti; yerel Türkiye cami listesi gösteriliyor.');
+        } else {
+            showToast('Türkiye geneli arama zaman aşımına uğradı. Bir cami/ilçe adı yazarak daraltın.');
+            el.mosqueList.innerHTML = '<div class="empty-state">Arama çok geniş kaldı. Örneğin “Kocatepe”, “Mimar Sinan” veya “Üsküdar mescit” yazın.</div>';
+        }
+    } finally {
+        el.turkeySearchBtn.disabled = false;
+        el.nearbySearchBtn.disabled = false;
     }
 }
 
-// Search and filter
-function applyFilters() {
-    const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
-    const cityValue = document.getElementById('cityFilter').value;
-    const periodValue = document.getElementById('periodFilter').value;
+async function fetchTurkeyMosques(searchText) {
+    const regex = searchText
+        ? overpassRegex(searchText)
+        : 'cami|camii|mescit|mescid|mescidi|masjid|mosque';
+    const textFilter = searchText ? `["name"~"${regex}",i]` : '';
+    const nameFilter = `["name"~"${regex}",i]`;
+    const limit = searchText ? 180 : 250;
+    const query = `[out:json][timeout:24];area["ISO3166-1"="TR"][admin_level=2]->.turkey;(node${textFilter}["amenity"="place_of_worship"]["religion"="muslim"](area.turkey);way${textFilter}["amenity"="place_of_worship"]["religion"="muslim"](area.turkey);relation${textFilter}["amenity"="place_of_worship"]["religion"="muslim"](area.turkey);node${textFilter}["building"="mosque"](area.turkey);way${textFilter}["building"="mosque"](area.turkey);relation${textFilter}["building"="mosque"](area.turkey);node${nameFilter}(area.turkey);way${nameFilter}(area.turkey);relation${nameFilter}(area.turkey););out center tags ${limit};`;
 
-    filteredData = mosqueData.filter(mosque => {
-        const matchesSearch = !searchText ||
-            mosque.name.toLowerCase().includes(searchText) ||
-            mosque.city.toLowerCase().includes(searchText) ||
-            mosque.district.toLowerCase().includes(searchText) ||
-            mosque.description.toLowerCase().includes(searchText) ||
-            mosque.architect.toLowerCase().includes(searchText);
+    for (const endpoint of OVERPASS_ENDPOINTS) {
+        try {
+            const response = await fetchWithTimeout(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body: new URLSearchParams({ data: query })
+            }, 22000);
+            if (!response.ok) continue;
+            const data = await response.json();
+            return data.elements
+                .map(item => normalizeOsmMosque(item, state.coords))
+                .filter(Boolean)
+                .sort((a, b) => a.distance - b.distance);
+        } catch (error) {
+            continue;
+        }
+    }
 
-        const matchesCity = !cityValue || mosque.city === cityValue;
-        const matchesPeriod = !periodValue || mosque.period === periodValue;
-
-        return matchesSearch && matchesCity && matchesPeriod;
-    });
-
-    renderList(filteredData);
-    addMarkers(filteredData);
-    updateResultCount(filteredData.length);
+    throw new Error('Turkey search failed');
 }
 
-// Reset filters
-function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('cityFilter').value = '';
-    document.getElementById('periodFilter').value = '';
-    filteredData = [...mosqueData];
-    renderList(mosqueData);
-    addMarkers(mosqueData);
-    updateResultCount(mosqueData.length);
+async function fetchOsmMosques(coords, radiusMeters) {
+    const query = `[out:json][timeout:14];(node["amenity"="place_of_worship"]["religion"="muslim"](around:${radiusMeters},${coords.lat},${coords.lon});way["amenity"="place_of_worship"]["religion"="muslim"](around:${radiusMeters},${coords.lat},${coords.lon});relation["amenity"="place_of_worship"]["religion"="muslim"](around:${radiusMeters},${coords.lat},${coords.lon});node["building"="mosque"](around:${radiusMeters},${coords.lat},${coords.lon});way["building"="mosque"](around:${radiusMeters},${coords.lat},${coords.lon});relation["building"="mosque"](around:${radiusMeters},${coords.lat},${coords.lon});node["name"~"cami|camii|mescit|mescid|mescidi|masjid|mosque",i](around:${radiusMeters},${coords.lat},${coords.lon});way["name"~"cami|camii|mescit|mescid|mescidi|masjid|mosque",i](around:${radiusMeters},${coords.lat},${coords.lon});relation["name"~"cami|camii|mescit|mescid|mescidi|masjid|mosque",i](around:${radiusMeters},${coords.lat},${coords.lon}););out center tags 28;`;
+
+    for (const endpoint of OVERPASS_ENDPOINTS) {
+        try {
+            const body = new URLSearchParams({ data: query });
+            const response = await fetchWithTimeout(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body
+            }, 8000);
+            if (!response.ok) continue;
+            const data = await response.json();
+            return data.elements
+                .map(item => normalizeOsmMosque(item, coords))
+                .filter(Boolean)
+                .sort((a, b) => a.distance - b.distance);
+        } catch (error) {
+            continue;
+        }
+    }
+
+    return [];
 }
 
-// Update result count text
-function updateResultCount(count) {
-    const el = document.getElementById('resultCount');
-    el.textContent = `Toplam ${count} cami listeleniyor (veritabanında ${mosqueData.length} cami)`;
+function normalizeOsmMosque(item, origin) {
+    const lat = item.lat || item.center?.lat;
+    const lon = item.lon || item.center?.lon;
+    if (!lat || !lon) return null;
+
+    return {
+        id: `osm-${item.type}-${item.id}`,
+        name: item.tags?.name || 'İsimsiz cami',
+        source: 'OpenStreetMap',
+        lat,
+        lon,
+        distance: distanceMeters(origin.lat, origin.lon, lat, lon)
+    };
 }
 
-// Bind events
-function bindEvents() {
-    document.getElementById('searchBtn').addEventListener('click', applyFilters);
-    document.getElementById('searchInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') applyFilters();
+function getLocalMosques(coords, limit) {
+    const localData = typeof mosqueData !== 'undefined' && Array.isArray(mosqueData) ? mosqueData : [];
+    if (localData.length === 0) return [];
+    return localData
+        .map(item => ({
+            id: `local-${item.id}`,
+            name: item.name,
+            source: `${titleCase(item.city)} / ${titleCase(item.district)}`,
+            lat: item.lat,
+            lon: item.lng,
+            distance: distanceMeters(coords.lat, coords.lon, item.lat, item.lng)
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, limit);
+}
+
+function getTurkeyLocalMosques(searchText, limit) {
+    const localData = typeof mosqueData !== 'undefined' && Array.isArray(mosqueData) ? mosqueData : [];
+    const query = normalizeText(searchText);
+    return localData
+        .filter(item => !query || [item.name, item.city, item.district, item.description].some(value => normalizeText(value).includes(query)))
+        .map(item => ({
+            id: `local-${item.id}`,
+            name: item.name,
+            source: `${titleCase(item.city)} / ${titleCase(item.district)}`,
+            lat: item.lat,
+            lon: item.lng,
+            distance: distanceMeters(state.coords.lat, state.coords.lon, item.lat, item.lng)
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, limit);
+}
+
+function mergeMosques(primary, fallback) {
+    const merged = [];
+
+    [...fallback, ...primary].sort((a, b) => a.distance - b.distance).forEach(item => {
+        const duplicate = merged.find(existing => isSameMosque(existing, item));
+        if (!duplicate) {
+            merged.push(item);
+            return;
+        }
+
+        const preferred = preferMosqueRecord(duplicate, item);
+        Object.assign(duplicate, {
+            ...preferred,
+            distance: Math.min(duplicate.distance, item.distance),
+            source: mergeSources(duplicate.source, item.source)
+        });
     });
-    document.getElementById('searchInput').addEventListener('input', () => {
-        // Auto-search after short delay
-        clearTimeout(window._searchTimeout);
-        window._searchTimeout = setTimeout(applyFilters, 300);
+
+    return merged.sort((a, b) => a.distance - b.distance);
+}
+
+function isSameMosque(left, right) {
+    const distance = distanceMeters(left.lat, left.lon, right.lat, right.lon);
+    if (distance <= 25) return true;
+    if (distance > 100) return false;
+    return areMosqueNamesClose(left.name, right.name);
+}
+
+function preferMosqueRecord(left, right) {
+    const leftLocal = left.source !== 'OpenStreetMap';
+    const rightLocal = right.source !== 'OpenStreetMap';
+
+    if (leftLocal && !rightLocal) return left;
+    if (rightLocal && !leftLocal) return right;
+    return String(right.name).length > String(left.name).length ? right : left;
+}
+
+function mergeSources(left, right) {
+    if (left === right) return left;
+    if (left === 'OpenStreetMap') return right;
+    if (right === 'OpenStreetMap') return left;
+    return left;
+}
+
+function areMosqueNamesClose(left, right) {
+    const a = normalizeMosqueName(left);
+    const b = normalizeMosqueName(right);
+    if (!a || !b) return false;
+    return a === b || a.includes(b) || b.includes(a);
+}
+
+function normalizeMosqueName(value) {
+    return normalizeText(value)
+        .replace(/camii|cami|mescidi|mescit|masjid|mosque/g, '')
+        .replace(/buyuk|kucuk|yeni|eski/g, '');
+}
+
+function renderMosques() {
+    if (state.nearestMosques.length === 0) {
+        el.mosqueSummary.textContent = 'Yakın cami bulunamadı.';
+        el.nearestRouteBtn.setAttribute('aria-disabled', 'true');
+        el.mosqueList.innerHTML = '<div class="empty-state">Bu konum için yakın cami bulunamadı. Google Maps aramasıyla devam edebilirsiniz.</div>';
+        return;
+    }
+
+    const nearest = state.nearestMosques[0];
+    el.mosqueSummary.textContent = `En yakın: ${nearest.name} · ${formatDistance(nearest.distance)}`;
+    el.nearestRouteBtn.href = directionsUrl(nearest);
+    el.nearestRouteBtn.setAttribute('aria-disabled', 'false');
+
+    el.mosqueList.innerHTML = state.nearestMosques.map(mosque => `
+        <article class="mosque-item">
+            <h3>${escapeHtml(mosque.name)}</h3>
+            <p>${escapeHtml(mosque.source)} · ${formatDistance(mosque.distance)}</p>
+            <div class="mosque-actions">
+                <a class="mini-link" href="${directionsUrl(mosque)}" target="_blank" rel="noopener noreferrer">Rota</a>
+                <a class="mini-link secondary" href="${mapsSearchUrl(mosque)}" target="_blank" rel="noopener noreferrer">Google Maps</a>
+            </div>
+        </article>
+    `).join('');
+}
+
+function renderMosqueMarkers() {
+    const bounds = [[state.coords.lat, state.coords.lon]];
+
+    state.nearestMosques.forEach(mosque => {
+        const marker = L.marker([mosque.lat, mosque.lon], {
+            icon: L.divIcon({
+                className: 'mosque-map-marker',
+                html: '<span style="display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#176b5b;color:#fff;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.24);font-weight:900;font-size:18px;">☾</span>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            })
+        }).bindPopup(`<h3>${escapeHtml(mosque.name)}</h3><p>${formatDistance(mosque.distance)}</p>`);
+        marker.addTo(state.markerLayer);
+        bounds.push([mosque.lat, mosque.lon]);
     });
-    document.getElementById('cityFilter').addEventListener('change', applyFilters);
-    document.getElementById('periodFilter').addEventListener('change', applyFilters);
-    document.getElementById('resetBtn').addEventListener('click', resetFilters);
-    document.getElementById('modalClose').addEventListener('click', closeModal);
-    document.getElementById('modalOverlay').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('modalOverlay')) closeModal();
+
+    if (bounds.length > 1) {
+        state.map.fitBounds(bounds, { padding: [34, 34], maxZoom: 16 });
+    }
+}
+
+function setActiveTab(tab) {
+    state.activeTab = tab;
+    if (tab === 'camiler' && location.hash !== '#camiler') history.replaceState(null, '', '#camiler');
+    if (tab === 'qibla' && location.hash !== '#qiblaPanel') history.replaceState(null, '', '#qiblaPanel');
+    if (tab === 'vakit' && location.hash) history.replaceState(null, '', location.pathname + location.search);
+    el.tabButtons.forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
+    el.tabPanels.forEach(panel => {
+        panel.hidden = panel.dataset.tabPanel !== tab;
     });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeModal();
+
+    if (tab === 'camiler') {
+        setTimeout(() => state.map.invalidateSize(), 0);
+    }
+
+    if (tab === 'qibla') {
+        renderQibla();
+        setTimeout(() => state.qiblaMap?.invalidateSize(), 0);
+    }
+}
+
+function applyInitialTab() {
+    if (location.hash === '#camiler') setActiveTab('camiler');
+    if (location.hash === '#qiblaPanel') setActiveTab('qibla');
+}
+
+function initQiblaMap() {
+    if (state.qiblaMap) return;
+
+    state.qiblaMap = L.map('qiblaMap', {
+        center: [state.coords.lat, state.coords.lon],
+        zoom: 4,
+        minZoom: 2,
+        maxZoom: 19
     });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(state.qiblaMap);
+}
+
+function renderQibla() {
+    if (!el.qiblaPanel || el.qiblaPanel.hidden) return;
+    initQiblaMap();
+
+    const origin = [state.coords.lat, state.coords.lon];
+    const kaaba = [KAABA.lat, KAABA.lon];
+    const bearing = qiblaBearing(state.coords.lat, state.coords.lon);
+    const distance = distanceMeters(state.coords.lat, state.coords.lon, KAABA.lat, KAABA.lon);
+
+    if (state.qiblaLine) {
+        state.qiblaLine.setLatLngs([origin, kaaba]);
+    } else {
+        state.qiblaLine = L.polyline([origin, kaaba], {
+            color: '#176b5b',
+            weight: 4,
+            opacity: 0.82,
+            dashArray: '10 8'
+        }).addTo(state.qiblaMap);
+    }
+
+    if (state.qiblaOriginMarker) {
+        state.qiblaOriginMarker.setLatLng(origin);
+    } else {
+        state.qiblaOriginMarker = L.marker(origin).bindPopup('Bulunan konum').addTo(state.qiblaMap);
+    }
+
+    if (state.kaabaMarker) {
+        state.kaabaMarker.setLatLng(kaaba);
+    } else {
+        state.kaabaMarker = L.marker(kaaba, {
+            icon: L.divIcon({
+                className: 'kaaba-marker',
+                html: '<span style="display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#111;color:#fff;border:3px solid #c66a2d;box-shadow:0 4px 16px rgba(0,0,0,.28);font-weight:900;">☾</span>',
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
+            })
+        }).bindPopup('Kâbe merkezi').addTo(state.qiblaMap);
+    }
+
+    state.qiblaMap.fitBounds([origin, kaaba], { padding: [34, 34] });
+    el.qiblaSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} noktasından Kâbe merkezine çizgi çizildi.`;
+    el.qiblaBearing.textContent = `${Math.round(bearing)}°`;
+    el.qiblaDistance.textContent = `${formatDistance(distance)} uzaklık`;
+    el.qiblaArrow.style.transform = `rotate(${bearing}deg)`;
+}
+
+function updateUserMarker() {
+    if (!state.map) return;
+
+    if (state.userMarker) {
+        state.userMarker.setLatLng([state.coords.lat, state.coords.lon]);
+    } else {
+        state.userMarker = L.marker([state.coords.lat, state.coords.lon], {
+            icon: L.divIcon({
+                className: 'user-map-marker',
+                html: '<span style="display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#c66a2d;color:#fff;border:3px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.28);font-weight:900;">•</span>',
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
+            })
+        }).bindPopup('Seçili konum').addTo(state.map);
+    }
+
+    state.map.setView([state.coords.lat, state.coords.lon], Math.max(state.map.getZoom(), 13));
+}
+
+async function getCoordsForSelection(districtName, cityName) {
+    const query = `${titleCase(districtName)}, ${titleCase(cityName)}, Türkiye`;
+    const url = new URL(GEOCODE_API);
+    url.search = new URLSearchParams({
+        name: query,
+        count: '1',
+        language: 'tr',
+        format: 'json'
+    }).toString();
+
+    try {
+        const data = await fetchJson(url.toString());
+        const first = data.results?.[0];
+        if (first) return { lat: first.latitude, lon: first.longitude };
+    } catch (error) {
+        return null;
+    }
+
+    return null;
+}
+
+function getFallbackCoords(cityName, districtName) {
+    const localData = typeof mosqueData !== 'undefined' && Array.isArray(mosqueData) ? mosqueData : [];
+    const local = localData.length > 0
+        ? localData.find(item => isCloseName(item.city, cityName) && isCloseName(item.district, districtName))
+            || localData.find(item => isCloseName(item.city, cityName))
+        : null;
+
+    if (local) return { lat: local.lat, lon: local.lng };
+    return { ...DEFAULT_LOCATION.coords };
+}
+
+function buildPrayerEntries(date, day) {
+    const base = new Date(day.MiladiTarihUzunIso8601 || date);
+    return PRAYERS.map(([key, label]) => ({
+        key,
+        label,
+        date: parseTimeOnDate(base, day[key])
+    }));
+}
+
+function parseTimeOnDate(date, timeText) {
+    const [hour, minute] = String(timeText || '00:00').split(':').map(Number);
+    const parsed = new Date(date);
+    parsed.setHours(hour || 0, minute || 0, 0, 0);
+    return parsed;
+}
+
+function startClock() {
+    const tick = () => {
+        el.currentClock.textContent = new Intl.DateTimeFormat('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        }).format(new Date());
+        updateCountdown();
+        if (state.nextPrayer && state.nextPrayer.date <= new Date()) {
+            updateNextPrayer();
+        }
+    };
+    tick();
+    setInterval(tick, 1000);
+}
+
+async function installPwa() {
+    if (!state.deferredInstallPrompt) return;
+    state.deferredInstallPrompt.prompt();
+    await state.deferredInstallPrompt.userChoice;
+    state.deferredInstallPrompt = null;
+    el.installBtn.hidden = true;
+}
+
+async function refreshApp() {
+    if (!navigator.onLine) {
+        showToast('Çevrimdışıyken cache temizlenmez. İnternet gelince güncelleyin.');
+        return;
+    }
+
+    el.appRefreshBtn.classList.add('spinning');
+    try {
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+        }
+        const registration = await navigator.serviceWorker?.getRegistration?.();
+        await registration?.update?.();
+    } finally {
+        window.location.reload();
+    }
+}
+
+async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+        await navigator.serviceWorker.register('sw.js');
+    } catch (error) {
+        console.warn('Service worker kaydedilemedi', error);
+    }
+}
+
+async function fetchJson(url, options = {}) {
+    const response = await fetch(url, options);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+}
+
+async function fetchJsonCached(url, cacheKey, options = {}) {
+    try {
+        const data = await fetchJson(url, options);
+        writeDataCache(cacheKey, data);
+        return data;
+    } catch (error) {
+        const cached = readDataCache(cacheKey);
+        if (cached) return cached;
+        throw error;
+    }
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+function readSavedLocation() {
+    try {
+        return JSON.parse(localStorage.getItem('vakit-location'));
+    } catch (error) {
+        return null;
+    }
+}
+
+function readDataCache(key) {
+    try {
+        const entry = JSON.parse(localStorage.getItem(`${DATA_CACHE_PREFIX}${key}`));
+        return entry?.data || null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function writeDataCache(key, data) {
+    try {
+        localStorage.setItem(`${DATA_CACHE_PREFIX}${key}`, JSON.stringify({
+            savedAt: Date.now(),
+            data
+        }));
+    } catch (error) {
+        console.warn('Veri önbelleğe yazılamadı', error);
+    }
+}
+
+function saveLocation() {
+    localStorage.setItem('vakit-location', JSON.stringify({
+        cityId: state.selected.cityId,
+        districtId: state.selected.districtId,
+        cityName: state.selected.cityName,
+        districtName: state.selected.districtName,
+        coords: state.coords
+    }));
+}
+
+function updateLocationSummary(prefix) {
+    el.locationSummary.textContent = `${prefix}: ${titleCase(state.selected.cityName)} / ${titleCase(state.selected.districtName)}`;
+}
+
+function setStatus(text) {
+    el.syncStatus.textContent = text;
+}
+
+function showToast(message) {
+    el.toast.textContent = message;
+    el.toast.classList.add('show');
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => el.toast.classList.remove('show'), 4200);
+}
+
+function collectReverseNames(reverse) {
+    const adminNames = reverse.localityInfo?.administrative?.map(item => item.name) || [];
+    return [
+        reverse.city,
+        reverse.locality,
+        reverse.principalSubdivision,
+        ...adminNames
+    ].filter(Boolean);
+}
+
+function findByNormalized(list, key, value) {
+    return list.find(item => isCloseName(item[key], value));
+}
+
+function isCloseName(left, right) {
+    const a = normalizeText(left);
+    const b = normalizeText(right);
+    return a === b || a.includes(b) || b.includes(a);
+}
+
+function normalizeText(value) {
+    return String(value || '')
+        .toLocaleLowerCase('tr-TR')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ı/g, 'i')
+        .replace(/[^a-z0-9]/g, '');
+}
+
+function titleCase(value) {
+    return String(value || '')
+        .toLocaleLowerCase('tr-TR')
+        .replace(/(^|\s|\/|-)(\p{L})/gu, (_, sep, char) => sep + char.toLocaleUpperCase('tr-TR'));
+}
+
+function formatDateKey(date) {
+    return new Intl.DateTimeFormat('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(date).replace(/\//g, '.');
+}
+
+function normalizeDateKey(value) {
+    return String(value || '').replace(/\//g, '.');
+}
+
+function startOfToday() {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+}
+
+function formatHour(value) {
+    return new Intl.DateTimeFormat('tr-TR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(new Date(value));
+}
+
+function formatCoord(value) {
+    return Number(value).toFixed(3);
+}
+
+function weatherLabel(code) {
+    const labels = {
+        0: 'Açık',
+        1: 'Az bulutlu',
+        2: 'Parçalı bulutlu',
+        3: 'Kapalı',
+        45: 'Sis',
+        48: 'Kırağılı sis',
+        51: 'Çiseleme',
+        53: 'Çiseleme',
+        55: 'Yoğun çiseleme',
+        61: 'Yağmur',
+        63: 'Yağmur',
+        65: 'Kuvvetli yağmur',
+        71: 'Kar',
+        73: 'Kar',
+        75: 'Yoğun kar',
+        80: 'Sağanak',
+        81: 'Sağanak',
+        82: 'Kuvvetli sağanak',
+        95: 'Gök gürültülü'
+    };
+    return labels[code] || 'Değişken';
+}
+
+function weatherIcon(code) {
+    if (code === 0) return '☀';
+    if ([1, 2].includes(code)) return '◐';
+    if (code === 3) return '☁';
+    if ([45, 48].includes(code)) return '≋';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '☂';
+    if ([71, 73, 75].includes(code)) return '✳';
+    if (code === 95) return 'ϟ';
+    return '◌';
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2) {
+    const radius = 6371000;
+    const phi1 = toRad(lat1);
+    const phi2 = toRad(lat2);
+    const deltaPhi = toRad(lat2 - lat1);
+    const deltaLambda = toRad(lon2 - lon1);
+    const a = Math.sin(deltaPhi / 2) ** 2
+        + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) ** 2;
+    return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toRad(value) {
+    return Number(value) * Math.PI / 180;
+}
+
+function toDeg(value) {
+    return Number(value) * 180 / Math.PI;
+}
+
+function qiblaBearing(lat, lon) {
+    const phi1 = toRad(lat);
+    const phi2 = toRad(KAABA.lat);
+    const deltaLambda = toRad(KAABA.lon - lon);
+    const y = Math.sin(deltaLambda);
+    const x = Math.cos(phi1) * Math.tan(phi2) - Math.sin(phi1) * Math.cos(deltaLambda);
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function formatDistance(meters) {
+    if (meters < 1000) return `${Math.round(meters)} m`;
+    return `${(meters / 1000).toFixed(1)} km`;
+}
+
+function directionsUrl(mosque) {
+    const origin = `${state.coords.lat},${state.coords.lon}`;
+    const destination = `${mosque.lat},${mosque.lon}`;
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=walking`;
+}
+
+function mapsSearchUrl(mosque) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${mosque.name} ${mosque.lat},${mosque.lon}`)}`;
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    }[char]));
+}
+
+function overpassRegex(value) {
+    return String(value || '')
+        .trim()
+        .replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
+        .replace(/\s+/g, '.*');
 }

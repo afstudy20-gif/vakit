@@ -1,0 +1,32 @@
+{
+    "name": "Vakit ve Cami",
+    "short_name": "Vakit",
+    "description": "Diyanet kaynaklı namaz vakitleri, 3 saatlik hava tahmini ve yakındaki cami rotaları.",
+    "lang": "tr",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#eef3f0",
+    "theme_color": "#176b5b",
+    "icons": [
+        {
+            "src": "icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Yakındaki camiler",
+            "url": "./#camiler",
+            "description": "Konuma göre yakın camileri aç"
+        },
+        {
+            "name": "Konum Bul",
+            "url": "./#qiblaPanel",
+            "description": "Kâbe yönünü haritada göster"
+        }
+    ]
+}

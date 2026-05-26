@@ -3,65 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Türkiye Camileri Ansiklopedisi</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css" />
+    <meta name="theme-color" content="#176b5b">
+    <meta name="description" content="Diyanet kaynaklı namaz vakitleri, hava durumu ve yakın cami rota uygulaması.">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Vakit">
+    <title>Vakit ve Cami</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon.svg">
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <h1>&#9770; Türkiye Camileri Ansiklopedisi</h1>
-            <p class="subtitle">Türkiye'deki tarihi ve modern camileri keşfedin</p>
-        </div>
-    </header>
-
-    <main>
-        <section class="search-section">
-            <div class="search-container">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Cami adı ile ara... (örn: Sultanahmet)" />
-                    <button id="searchBtn" class="btn-search">Ara</button>
+    <div class="app-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Diyanet kaynaklı vakitler</p>
+                <h1>Vakit ve Cami</h1>
+            </div>
+            <div class="topbar-actions">
+                <div class="header-weather" id="headerWeather" aria-live="polite">
+                    <span class="weather-symbol">--</span>
+                    <span class="weather-text">Hava bekleniyor</span>
                 </div>
-                <div class="filter-row">
-                    <select id="cityFilter">
-                        <option value="">Tüm Şehirler</option>
-                    </select>
-                    <select id="periodFilter">
-                        <option value="">Tüm Dönemler</option>
-                        <option value="Osmanlı">Osmanlı Dönemi</option>
-                        <option value="Selçuklu">Selçuklu Dönemi</option>
-                        <option value="Cumhuriyet">Cumhuriyet Dönemi</option>
-                        <option value="Modern">Modern</option>
-                    </select>
-                    <button id="resetBtn" class="btn-reset">Sıfırla</button>
+                <span class="sync-status" id="syncStatus">Hazırlanıyor</span>
+                <button class="refresh-app-btn" id="appRefreshBtn" type="button" title="Cache temizle ve uygulamayı güncelle">
+                    <span>↻</span>
+                    <span>Güncelle</span>
+                </button>
+                <button class="icon-button" id="installBtn" type="button" title="Uygulamayı yükle" hidden>+</button>
+            </div>
+        </header>
+
+        <nav class="app-tabs" aria-label="Uygulama sekmeleri">
+            <button class="active" type="button" data-tab="vakit">Vakitler</button>
+            <button type="button" data-tab="camiler">Camiler</button>
+            <button type="button" data-tab="qibla">Konum Bul</button>
+        </nav>
+
+        <main class="dashboard">
+            <section class="location-panel">
+                <div class="panel-heading">
+                    <div>
+                        <h2>Konum</h2>
+                        <p id="locationSummary">İl ve ilçe seçin veya konum izni verin.</p>
+                    </div>
+                    <button class="primary-button" id="geoBtn" type="button">Konumumu Kullan</button>
                 </div>
-                <div class="result-count" id="resultCount"></div>
-            </div>
-        </section>
 
-        <section class="content-section">
-            <div class="map-container">
-                <div id="map"></div>
-            </div>
-            <div class="list-container" id="mosqueList">
-                <!-- Cards will be injected here -->
-            </div>
-        </section>
+                <div class="selector-grid">
+                    <label>
+                        <span>İl</span>
+                        <select id="citySelect">
+                            <option value="">İller yükleniyor...</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>İlçe</span>
+                        <select id="districtSelect" disabled>
+                            <option value="">Önce il seçin</option>
+                        </select>
+                    </label>
+                    <button class="secondary-button" id="refreshBtn" type="button">Güncelle</button>
+                </div>
+            </section>
 
-        <!-- Detail Modal -->
-        <div class="modal-overlay" id="modalOverlay">
-            <div class="modal" id="detailModal">
-                <button class="modal-close" id="modalClose">&times;</button>
-                <div class="modal-body" id="modalBody"></div>
-            </div>
-        </div>
-    </main>
+            <section class="prayer-panel tab-panel" data-tab-panel="vakit">
+                <div class="next-prayer">
+                    <div>
+                        <p class="eyebrow">Sıradaki vakit</p>
+                        <h2 id="nextPrayerName">-</h2>
+                    </div>
+                    <div class="countdown" id="countdown">--:--:--</div>
+                </div>
 
-    <footer>
-        <p>Türkiye Camileri Ansiklopedisi &copy; 2026 &mdash; Bilgi amaçlı hazırlanmıştır.</p>
-    </footer>
+                <div class="time-row">
+                    <span id="currentClock">--:--</span>
+                    <span id="prayerDate">Vakitler bekleniyor</span>
+                </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                <div class="prayer-grid" id="prayerGrid"></div>
+            </section>
+
+            <section class="weather-panel tab-panel" data-tab-panel="vakit">
+                <div class="panel-heading compact">
+                    <div>
+                        <h2>3 Saatlik Hava</h2>
+                        <p id="weatherSummary">Konum seçilince güncellenecek.</p>
+                    </div>
+                </div>
+                <div class="weather-grid" id="weatherGrid"></div>
+            </section>
+
+            <section class="mosque-panel tab-panel" id="camiler" data-tab-panel="camiler" hidden>
+                <div class="panel-heading">
+                    <div>
+                        <h2>Yakındaki Camiler</h2>
+                        <p id="mosqueSummary">Konuma göre en yakın camiler listelenir.</p>
+                    </div>
+                    <a class="secondary-button link-button" id="nearestRouteBtn" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Rota</a>
+                </div>
+                <div class="turkey-search">
+                    <input id="turkeySearchInput" type="search" placeholder="Türkiye genelinde cami veya mescit ara">
+                    <button class="secondary-button" id="turkeySearchBtn" type="button">Türkiye'de Ara</button>
+                    <button class="secondary-button" id="nearbySearchBtn" type="button">Yakınıma Dön</button>
+                </div>
+                <div class="map-layout">
+                    <div id="map" aria-label="Yakındaki camiler haritası"></div>
+                    <div class="mosque-list" id="mosqueList"></div>
+                </div>
+            </section>
+
+            <section class="qibla-panel tab-panel" id="qiblaPanel" data-tab-panel="qibla" hidden>
+                <div class="panel-heading">
+                    <div>
+                        <h2>Konum Bul</h2>
+                        <p id="qiblaSummary">Seçili konumdan Kâbe merkezine kıble çizgisi çizilir.</p>
+                    </div>
+                    <button class="primary-button" id="qiblaGeoBtn" type="button">Konumumu Yenile</button>
+                </div>
+                <div class="qibla-layout">
+                    <div id="qiblaMap" aria-label="Kâbe yönü haritası"></div>
+                    <div class="qibla-card">
+                        <div class="qibla-compass">
+                            <div class="qibla-arrow" id="qiblaArrow">☾</div>
+                        </div>
+                        <div>
+                            <span>Kıble Açısı</span>
+                            <strong id="qiblaBearing">--°</strong>
+                            <p id="qiblaDistance">Mesafe hesaplanıyor</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="vendor/leaflet/leaflet.js"></script>
     <script src="mosques.js"></script>
     <script src="app.js"></script>
 </body>
