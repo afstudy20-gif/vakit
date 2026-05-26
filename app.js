@@ -52,7 +52,9 @@ const state = {
     deferredInstallPrompt: null,
     qiblaRotation: 0,
     streetTile: null,
-    qiblaStreetTile: null
+    qiblaStreetTile: null,
+    compassActive: false,
+    lastHeading: null
 };
 
 const el = {};
@@ -129,6 +131,9 @@ function cacheDom() {
     el.resetRotationBtn = document.getElementById('resetRotationBtn');
     el.qiblaZoomInBtn = document.getElementById('qiblaZoomInBtn');
     el.qiblaZoomOutBtn = document.getElementById('qiblaZoomOutBtn');
+    el.autoCompassBtn = document.getElementById('autoCompassBtn');
+    el.compassRose = document.getElementById('compassRose');
+    el.qiblaCompassDial = document.getElementById('qiblaCompassDial');
 }
 
 function bindEvents() {
@@ -179,11 +184,13 @@ function bindEvents() {
     }
     if (el.qiblaMapRotation) {
         el.qiblaMapRotation.addEventListener('input', () => {
+            stopAutoCompass();
             setQiblaRotation(Number(el.qiblaMapRotation.value));
         });
     }
     if (el.rotateLeftBtn) {
         el.rotateLeftBtn.addEventListener('click', () => {
+            stopAutoCompass();
             const next = (state.qiblaRotation - 2 + 360) % 360;
             el.qiblaMapRotation.value = next;
             setQiblaRotation(next);
@@ -191,6 +198,7 @@ function bindEvents() {
     }
     if (el.rotateRightBtn) {
         el.rotateRightBtn.addEventListener('click', () => {
+            stopAutoCompass();
             const next = (state.qiblaRotation + 2) % 360;
             el.qiblaMapRotation.value = next;
             setQiblaRotation(next);
@@ -198,6 +206,7 @@ function bindEvents() {
     }
     if (el.alignQiblaBtn) {
         el.alignQiblaBtn.addEventListener('click', () => {
+            stopAutoCompass();
             const bearing = qiblaBearing(state.coords.lat, state.coords.lon);
             const rotation = (360 - Math.round(bearing)) % 360;
             el.qiblaMapRotation.value = rotation;
@@ -207,10 +216,14 @@ function bindEvents() {
     }
     if (el.resetRotationBtn) {
         el.resetRotationBtn.addEventListener('click', () => {
+            stopAutoCompass(); // Stop auto compass if manual reset clicked
             el.qiblaMapRotation.value = 0;
             setQiblaRotation(0);
             showToast('Pusula yönü kuzeye sıfırlandı.');
         });
+    }
+    if (el.autoCompassBtn) {
+        el.autoCompassBtn.addEventListener('click', toggleAutoCompass);
     }
     if (el.qiblaZoomInBtn) {
         el.qiblaZoomInBtn.addEventListener('click', () => {
@@ -893,7 +906,14 @@ function renderQibla() {
     if (state.qiblaOriginMarker) {
         state.qiblaOriginMarker.setLatLng(origin);
     } else {
-        state.qiblaOriginMarker = L.marker(origin).bindPopup('Bulunan konum').addTo(state.qiblaMap);
+        state.qiblaOriginMarker = L.marker(origin, {
+            icon: L.divIcon({
+                className: 'qibla-user-marker',
+                html: '<span style="display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#8b5cf6;color:#fff;border:3px solid #fff;box-shadow:0 4px 16px rgba(139,92,246,0.4);font-weight:900;">•</span>',
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
+            })
+        }).bindPopup('Bulunan konum').addTo(state.qiblaMap);
     }
 
     if (state.kaabaMarker) {
@@ -914,7 +934,9 @@ function renderQibla() {
     el.qiblaSummary.textContent = `${formatCoord(state.coords.lat)}, ${formatCoord(state.coords.lon)} noktasından Kâbe yönüne hat çizildi.`;
     el.qiblaBearing.textContent = `${Math.round(bearing)}°`;
     el.qiblaDistance.textContent = `${formatDistance(distance)} uzaklık`;
-    el.qiblaArrow.style.transform = `rotate(${bearing}deg)`;
+    
+    // Call setQiblaRotation to apply rotation, counter-rotations, and alignment computations
+    setQiblaRotation(state.qiblaRotation || 0);
 }
 
 function updateUserMarker() {
@@ -1362,7 +1384,22 @@ function setQiblaRotation(deg) {
     const qiblaMapEl = document.getElementById('qiblaMap');
     if (qiblaMapEl) {
         qiblaMapEl.style.transform = `rotate(${deg}deg)`;
+        
+        // Counter-rotate markers inside qiblaMapEl so they stay upright and readable
+        const markers = qiblaMapEl.querySelectorAll('.kaaba-marker span, .qibla-user-marker span');
+        markers.forEach(marker => {
+            marker.style.transform = `rotate(${-deg}deg)`;
+        });
+        
+        // Counter-rotate popup bubbles inside qiblaMapEl
+        const popups = qiblaMapEl.querySelectorAll('.leaflet-popup');
+        popups.forEach(popup => {
+            popup.style.transform = `rotate(${-deg}deg)`;
+            popup.style.transformOrigin = 'bottom center';
+        });
     }
+    
+    // Rotate qiblaDirectionOverlay & counter-rotate N/E/S/W labels
     const overlay = document.getElementById('qiblaDirectionOverlay');
     if (overlay) {
         overlay.style.transform = `rotate(${deg}deg)`;
@@ -1370,6 +1407,139 @@ function setQiblaRotation(deg) {
         labels.forEach(label => {
             label.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
         });
+    }
+
+    // Rotate compass rose & counter-rotate N/E/S/W labels inside it
+    if (el.compassRose) {
+        el.compassRose.style.transform = `rotate(${deg}deg)`;
+        const roseLabels = el.compassRose.querySelectorAll('.compass-label');
+        roseLabels.forEach(label => {
+            const isNS = label.classList.contains('dir-n') || label.classList.contains('dir-s');
+            const baseTranslate = isNS ? 'translateX(-50%)' : 'translateY(-50%)';
+            label.style.transform = `${baseTranslate} rotate(${-deg}deg)`;
+        });
+    }
+
+    // Align Qibla compass arrow and compute turns/guidance
+    const bearing = qiblaBearing(state.coords.lat, state.coords.lon);
+    const relativeAngle = (bearing + deg) % 360;
+    if (el.qiblaArrow) {
+        el.qiblaArrow.style.transform = `rotate(${relativeAngle}deg)`;
+    }
+
+    // Guidance and haptic feedback
+    const diff = (relativeAngle + 180) % 360 - 180; // normalized to -180 to 180
+    const isAligned = Math.abs(diff) <= 5; // Perfect alignment window (+- 5 degrees)
+
+    if (el.qiblaCompassDial) {
+        el.qiblaCompassDial.classList.toggle('aligned', isAligned);
+    }
+    if (el.qiblaArrow) {
+        el.qiblaArrow.classList.toggle('aligned', isAligned);
+    }
+
+    if (el.qiblaBearing) {
+        if (isAligned) {
+            el.qiblaBearing.innerHTML = `<span style="color:var(--accent); font-size:1.4rem; letter-spacing:0.5px;">✓ HİZALANDI</span><br><span style="font-size:1.1rem; color:var(--muted); font-weight:700;">${Math.round(bearing)}°</span>`;
+            
+            // Haptic tactile click (only triggers once when entering alignment range)
+            if (!state.hasVibrated) {
+                if (navigator.vibrate) {
+                    navigator.vibrate(60);
+                }
+                state.hasVibrated = true;
+            }
+        } else {
+            state.hasVibrated = false;
+            const turnDir = diff > 0 ? 'Sağa' : 'Sola';
+            const turnVal = Math.round(Math.abs(diff));
+            el.qiblaBearing.innerHTML = `${Math.round(bearing)}°<br><span style="font-size:0.9rem; color:var(--danger); font-weight:700; display:inline-block; margin-top:2px;">${turnDir} ${turnVal}° dönün</span>`;
+        }
+    }
+}
+
+// Auto Compass Sensor Controls (Compass Mode)
+function toggleAutoCompass() {
+    if (state.compassActive) {
+        stopAutoCompass();
+        showToast('Pusula modu kapatıldı.');
+    } else {
+        startAutoCompass();
+    }
+}
+
+function startAutoCompass() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS requires permission request
+        DeviceOrientationEvent.requestPermission()
+            .then(permissionState => {
+                if (permissionState === 'granted') {
+                    startCompassListener();
+                } else {
+                    showToast('Pusula izni verilmedi.');
+                }
+            })
+            .catch(() => {
+                showToast('Sensör erişim hatası.');
+            });
+    } else {
+        // Android / desktop default
+        startCompassListener();
+    }
+}
+
+function startCompassListener() {
+    window.addEventListener('deviceorientation', handleOrientation, true);
+    state.compassActive = true;
+    state.lastHeading = null;
+    if (el.autoCompassBtn) {
+        el.autoCompassBtn.classList.add('active');
+        el.autoCompassBtn.innerHTML = '🧭 Pusula Açık';
+    }
+    showToast('Pusula aktif! Cihazınızı çevirin.');
+}
+
+function stopAutoCompass() {
+    window.removeEventListener('deviceorientation', handleOrientation, true);
+    state.compassActive = false;
+    state.lastHeading = null;
+    if (el.autoCompassBtn) {
+        el.autoCompassBtn.classList.remove('active');
+        el.autoCompassBtn.innerHTML = '🧭 Pusula Modu';
+    }
+}
+
+function handleOrientation(event) {
+    if (!state.compassActive) return;
+
+    let heading = null;
+    // webkitCompassHeading is the most accurate sensor on iOS
+    if (event.webkitCompassHeading !== undefined) {
+        heading = event.webkitCompassHeading;
+    } else if (event.alpha !== null) {
+        // alpha on Android is counter-clockwise, convert to clockwise heading
+        heading = (360 - event.alpha) % 360;
+    }
+
+    if (heading !== null) {
+        // Smooth the heading changes using simple low-pass filter (25% interpolation)
+        if (state.lastHeading === null) {
+            state.lastHeading = heading;
+        } else {
+            let diff = heading - state.lastHeading;
+            // Handle 359 -> 0 wrap-around
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            state.lastHeading += diff * 0.25;
+            state.lastHeading = (state.lastHeading + 360) % 360;
+        }
+
+        // Calculate map/compass rotation (North at 360 - Heading)
+        const rotation = (360 - state.lastHeading) % 360;
+        if (el.qiblaMapRotation) {
+            el.qiblaMapRotation.value = Math.round(rotation);
+        }
+        setQiblaRotation(rotation);
     }
 }
 

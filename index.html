@@ -142,11 +142,18 @@
                             <div class="qibla-actions-row">
                                 <button class="primary-button compact" id="alignQiblaBtn" type="button">✨ Haritayı Kıbleye Hizala</button>
                                 <button class="secondary-button compact" id="resetRotationBtn" type="button">Kuzeyi Göster</button>
+                                <button class="secondary-button compact" id="autoCompassBtn" type="button" title="Pusula Sensörünü Kullan">🧭 Pusula Modu</button>
                             </div>
                         </div>
                     </div>
                     <div class="qibla-card">
-                        <div class="qibla-compass">
+                        <div class="qibla-compass" id="qiblaCompassDial">
+                            <div class="compass-rose" id="compassRose">
+                                <span class="compass-label dir-n">K</span>
+                                <span class="compass-label dir-e">D</span>
+                                <span class="compass-label dir-s">G</span>
+                                <span class="compass-label dir-w">B</span>
+                            </div>
                             <div class="qibla-arrow" id="qiblaArrow">☾</div>
                         </div>
                         <div class="qibla-metrics-box">
