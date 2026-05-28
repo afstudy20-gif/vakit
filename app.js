@@ -417,31 +417,53 @@ async function useCurrentLocation() {
         console.error('Geolocation error:', error);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-        let errMsg = 'Konum izni alınamadı. İl ve ilçe seçebilirsiniz.';
+        let errMsg = 'Konum alınamadı. İl ve ilçe seçebilirsiniz.';
         if (error) {
             if (error.code === error.PERMISSION_DENIED) {
                 if (isIOS) {
-                    errMsg = 'iOS konum izni reddedildi. Adres çubuğundaki "Aa" simgesine tıklayıp "Web Sitesi Ayarları" -> "Konum" -> "İzin Ver" yapın veya Ayarlar > Gizlilik > Konum Servisleri altından Safari/Tarayıcınıza izin verin.';
+                    errMsg = 'iOS konum izni kapalı veya reddedildi. Adres çubuğundaki "Aa" simgesine tıklayıp "Web Sitesi Ayarları" -> "Konum" -> "İzin Ver" yapın ya da Ayarlar > Gizlilik ve Güvenlik > Konum Servisleri altından Safari/Tarayıcınıza ve siteye izin verildiğinden emin olun.';
                 } else {
                     errMsg = 'Konum izni reddedildi. Tarayıcınızın adres çubuğundaki kilit simgesine dokunarak konum iznini sıfırlayabilirsiniz.';
                 }
             } else if (error.code === error.POSITION_UNAVAILABLE) {
                 errMsg = 'Konum bilgisi alınamadı (GPS kapalı veya sinyal zayıf). Lütfen konum servislerini açın.';
             } else if (error.code === error.TIMEOUT) {
-                errMsg = 'Konum bulma zaman aşımına uğradı. Tekrar deneyin.';
+                errMsg = 'Konum bulma zaman aşımına uğradı. Lütfen tekrar deneyin.';
             }
         }
-        showToast(errMsg, 9000);
+        showToast(errMsg, 10000);
         setStatus('Elle seçim hazır');
     };
 
     const tryGeo = (highAccuracy = true) => {
         return new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: highAccuracy,
-                timeout: highAccuracy ? 7000 : 9000,
-                maximumAge: 300000
-            });
+            let watchId = null;
+            
+            // Cold-start warm-up timeout for iOS Safari GPS hardware
+            const timeoutId = setTimeout(() => {
+                if (watchId !== null) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+                reject({ code: 3, message: 'Timeout' });
+            }, highAccuracy ? 14000 : 18000);
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    clearTimeout(timeoutId);
+                    navigator.geolocation.clearWatch(watchId);
+                    resolve(position);
+                },
+                (error) => {
+                    clearTimeout(timeoutId);
+                    navigator.geolocation.clearWatch(watchId);
+                    reject(error);
+                },
+                {
+                    enableHighAccuracy: highAccuracy,
+                    timeout: highAccuracy ? 12000 : 15000,
+                    maximumAge: 0 // Force fresh reading, bypass iOS stale cache
+                }
+            );
         });
     };
 
