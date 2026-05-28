@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vakit-cami-v33';
+const CACHE_NAME = 'vakit-cami-v36';
 const APP_SHELL = [
     './',
     './index.html',
@@ -7,6 +7,11 @@ const APP_SHELL = [
     './mosques.js',
     './manifest.webmanifest',
     './icons/icon.svg',
+    './icons/icon-192.png',
+    './icons/icon-512.png',
+    './icons/icon-192-maskable.png',
+    './icons/icon-512-maskable.png',
+    './icons/icon-apple-180.png',
     './vendor/leaflet/leaflet.css',
     './vendor/leaflet/leaflet.js',
     './vendor/leaflet/images/marker-icon.png',

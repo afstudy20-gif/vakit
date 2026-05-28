@@ -1,10 +1,14 @@
 const PRAYER_API = 'https://ezanvakti.emushaf.net';
 const COUNTRY_ID = '2';
+const DIYANET_PROXY = '/diyanet/';
+const DIYANET_FALLBACK_PROXY = 'https://corsproxy.io/?url=';
 const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
 const GEOCODE_API = 'https://geocoding-api.open-meteo.com/v1/search';
 const REVERSE_API = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
 const OVERPASS_ENDPOINTS = [
     'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
     'https://overpass.private.coffee/api/interpreter'
 ];
@@ -22,15 +26,10 @@ const MAP_SCAN_RESULT_LIMIT = 500;
 const OSM_MOSQUE_NAME_REGEX = 'cami|camii|mescit|mescid|mescidi|masjid|mosque';
 const OSM_MOSQUE_FILTERS = [
     '["amenity"="place_of_worship"]["religion"="muslim"]',
-    '["amenity"="place_of_worship"]["name"~"{{regex}}",i]',
-    '["amenity"="place_of_worship"]["name:tr"~"{{regex}}",i]',
-    '["amenity"="place_of_worship"]["alt_name"~"{{regex}}",i]',
-    '["amenity"="place_of_worship"]["official_name"~"{{regex}}",i]',
     '["building"="mosque"]',
-    '["name"~"{{regex}}",i]',
-    '["name:tr"~"{{regex}}",i]',
-    '["alt_name"~"{{regex}}",i]',
-    '["official_name"~"{{regex}}",i]'
+    '["amenity"="place_of_worship"]["name"~"{{regex}}",i]',
+    '["name"~"{{regex}}",i]["religion"="muslim"]',
+    '["name"~"{{regex}}",i]["amenity"="place_of_worship"]'
 ];
 
 const PRAYERS = [
@@ -72,6 +71,7 @@ const state = {
     prayerDays: [],
     todayPrayer: null,
     nextPrayer: null,
+    eidDiyanet: null,
     coords: { ...DEFAULT_LOCATION.coords },
     map: null,
     markerLayer: null,
@@ -400,29 +400,81 @@ async function applyManualSelection() {
 }
 
 async function useCurrentLocation() {
+    const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
     if (!navigator.geolocation) {
-        showToast('Tarayıcı konum özelliğini desteklemiyor. İl ve ilçe seçebilirsiniz.');
+        if (!isSecure) {
+            showToast('Modern tarayıcılar (ve iOS) konum servislerini yalnızca güvenli (HTTPS) bağlantılarda destekler. Lütfen siteye HTTPS ile bağlandığınızdan emin olun.', 8000);
+        } else {
+            showToast('Tarayıcınız konum özelliğini desteklemiyor. İl ve ilçe seçerek devam edebilirsiniz.');
+        }
         return;
     }
 
     setStatus('Konum bekleniyor');
-    navigator.geolocation.getCurrentPosition(
-        async position => {
-            state.coords = {
-                lat: position.coords.latitude,
-                lon: position.coords.longitude
-            };
-            await matchLocationToDistrict();
-            saveLocation();
-            updateLocationSummary('Canlı konum');
-            updateAll();
-        },
-        () => {
-            showToast('Konum izni verilmedi. İl ve ilçe seçimiyle vakitleri kullanabilirsiniz.');
-            setStatus('Elle seçim hazır');
-        },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
-    );
+
+    const handleGeoError = (error) => {
+        console.error('Geolocation error:', error);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        let errMsg = 'Konum izni alınamadı. İl ve ilçe seçebilirsiniz.';
+        if (error) {
+            if (error.code === error.PERMISSION_DENIED) {
+                if (isIOS) {
+                    errMsg = 'iOS konum izni reddedildi. Adres çubuğundaki "Aa" simgesine tıklayıp "Web Sitesi Ayarları" -> "Konum" -> "İzin Ver" yapın veya Ayarlar > Gizlilik > Konum Servisleri altından Safari/Tarayıcınıza izin verin.';
+                } else {
+                    errMsg = 'Konum izni reddedildi. Tarayıcınızın adres çubuğundaki kilit simgesine dokunarak konum iznini sıfırlayabilirsiniz.';
+                }
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                errMsg = 'Konum bilgisi alınamadı (GPS kapalı veya sinyal zayıf). Lütfen konum servislerini açın.';
+            } else if (error.code === error.TIMEOUT) {
+                errMsg = 'Konum bulma zaman aşımına uğradı. Tekrar deneyin.';
+            }
+        }
+        showToast(errMsg, 9000);
+        setStatus('Elle seçim hazır');
+    };
+
+    const tryGeo = (highAccuracy = true) => {
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: highAccuracy,
+                timeout: highAccuracy ? 7000 : 9000,
+                maximumAge: 300000
+            });
+        });
+    };
+
+    try {
+        const position = await tryGeo(true);
+        state.coords = {
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+        };
+        await matchLocationToDistrict();
+        saveLocation();
+        updateLocationSummary('Canlı konum');
+        await updateAll();
+    } catch (error) {
+        if (error && (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT)) {
+            setStatus('Konum aranıyor (Düşük güç)');
+            try {
+                const position = await tryGeo(false);
+                state.coords = {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                };
+                await matchLocationToDistrict();
+                saveLocation();
+                updateLocationSummary('Canlı konum');
+                await updateAll();
+            } catch (retryError) {
+                handleGeoError(retryError);
+            }
+        } else {
+            handleGeoError(error);
+        }
+    }
 }
 
 async function matchLocationToDistrict() {
@@ -484,6 +536,7 @@ async function loadPrayerTimes() {
     state.todayPrayer = pickPrayerDay(state.prayerDays);
     renderPrayerTimes();
     updateNextPrayer();
+    refreshDiyanetEidPrayer();
 }
 
 function pickPrayerDay(days) {
@@ -519,6 +572,10 @@ function renderEidPrayerInfo() {
         return;
     }
 
+    const sourceLabel = eid.source === 'diyanet'
+        ? 'Diyanet'
+        : `Güneş +${EID_PRAYER_OFFSET_MINUTES} dk`;
+
     el.eidPrayerInfo.hidden = false;
     el.eidPrayerInfo.innerHTML = `
         <div>
@@ -528,7 +585,7 @@ function renderEidPrayerInfo() {
         </div>
         <div class="eid-prayer-time">
             <strong>${eid.time}</strong>
-            <span>Güneş +${EID_PRAYER_OFFSET_MINUTES} dk</span>
+            <span>${escapeHtml(sourceLabel)}</span>
         </div>
     `;
 }
@@ -542,13 +599,22 @@ function findVisibleEidPrayer() {
     });
     if (!eidDay) return null;
 
+    const dateKey = normalizeDateKey(eidDay.MiladiTarihKisa);
+    const diyanet = state.eidDiyanet;
+    const diyanetMatches = diyanet
+        && diyanet.dateKey === dateKey
+        && diyanet.districtId === state.selected.districtId;
+    const diyanetTime = diyanetMatches ? diyanet.time : '';
+
     const sunrise = eidDay.Gunes || eidDay.GunesDogus;
-    const time = addMinutesToTime(sunrise, EID_PRAYER_OFFSET_MINUTES);
+    const fallbackTime = addMinutesToTime(sunrise, EID_PRAYER_OFFSET_MINUTES);
+    const time = diyanetTime || fallbackTime;
     if (!time) return null;
 
     return {
         name: eidPrayerName(eidDay),
         time,
+        source: diyanetTime ? 'diyanet' : 'sunrise',
         dateLabel: eidDay.MiladiTarihUzun || eidDay.MiladiTarihKisa || '',
         hijriLabel: eidDay.HicriTarihUzun || ''
     };
@@ -869,7 +935,7 @@ async function fetchTurkeyMosques(searchText) {
     const textFilter = searchText ? `["name"~"${regex}",i]` : '';
     const nameFilter = `["name"~"${regex}",i]`;
     const limit = TURKEY_SEARCH_RESULT_LIMIT;
-    const query = `[out:json][timeout:24];area["ISO3166-1"="TR"][admin_level=2]->.turkey;(node${textFilter}["amenity"="place_of_worship"]["religion"="muslim"](area.turkey);way${textFilter}["amenity"="place_of_worship"]["religion"="muslim"](area.turkey);relation${textFilter}["amenity"="place_of_worship"]["religion"="muslim"](area.turkey);node${textFilter}["building"="mosque"](area.turkey);way${textFilter}["building"="mosque"](area.turkey);relation${textFilter}["building"="mosque"](area.turkey);node${nameFilter}(area.turkey);way${nameFilter}(area.turkey);relation${nameFilter}(area.turkey););out center tags ${limit};`;
+    const query = `[out:json][timeout:24];area["ISO3166-1"="TR"][admin_level=2]->.turkey;(nwr${textFilter}["amenity"="place_of_worship"]["religion"="muslim"](area.turkey);nwr${textFilter}["building"="mosque"](area.turkey);nwr${nameFilter}(area.turkey););out center tags ${limit};`;
 
     for (const endpoint of OVERPASS_ENDPOINTS) {
         try {
@@ -1387,6 +1453,123 @@ async function fetchJsonCached(url, cacheKey, options = {}) {
     }
 }
 
+async function fetchDiyanet(path) {
+    const clean = String(path || '').replace(/^\/+/, '');
+    const proxied = `${DIYANET_PROXY}${clean}`;
+    try {
+        const response = await fetch(proxied);
+        if (response.ok) return response;
+        throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+        const fallbackUrl = `${DIYANET_FALLBACK_PROXY}${encodeURIComponent(`https://namazvakitleri.diyanet.gov.tr/${clean}`)}`;
+        const response = await fetch(fallbackUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response;
+    }
+}
+
+async function fetchDiyanetJson(path, cacheKey) {
+    try {
+        const response = await fetchDiyanet(path);
+        const data = await response.json();
+        if (cacheKey) writeDataCache(cacheKey, data);
+        return data;
+    } catch (error) {
+        if (cacheKey) {
+            const cached = readDataCache(cacheKey);
+            if (cached) return cached;
+        }
+        throw error;
+    }
+}
+
+async function resolveDiyanetDistrict(cityName, districtName) {
+    const cacheKey = `diyanet-id:${normalizeText(cityName)}:${normalizeText(districtName)}`;
+    const cached = readDataCache(cacheKey);
+    if (cached && cached.id && cached.url) return cached;
+
+    const statePayload = await fetchDiyanetJson(
+        'tr-TR/home/GetRegList?ChangeType=country&CountryId=2',
+        'diyanet-states'
+    );
+    const stateList = statePayload?.StateList || [];
+    const stateMatch = stateList.find(item => isCloseName(item.SehirAdi, cityName));
+    if (!stateMatch) return null;
+
+    const distPayload = await fetchDiyanetJson(
+        `tr-TR/home/GetRegList?ChangeType=state&CountryId=2&StateId=${stateMatch.SehirID}`,
+        `diyanet-districts:${stateMatch.SehirID}`
+    );
+    const distList = distPayload?.StateRegionList || [];
+    const districtMatch = distList.find(item => isCloseName(item.IlceAdi, districtName))
+        || distList.find(item => isCloseName(item.IlceAdi, cityName))
+        || distList[0];
+    if (!districtMatch) return null;
+
+    const resolved = { id: districtMatch.IlceID, url: districtMatch.IlceUrl };
+    writeDataCache(cacheKey, resolved);
+    return resolved;
+}
+
+function parseDiyanetBayramTime(html) {
+    const re = /<span>\s*(Kurban|Ramazan)\s+Bayram\s+Namaz\s+Vakti\s*<\/span>[\s\S]{0,400}?<span[^>]*class="bayram-info-value-top"[^>]*>\s*(\d{1,2}:\d{2})(?::\d{2})?\s*</i;
+    const match = re.exec(html);
+    if (!match) return null;
+    return { type: match[1], time: match[2] };
+}
+
+async function fetchDiyanetBayram(districtUrl) {
+    const cacheKey = `diyanet-bayram-html:${districtUrl}`;
+    try {
+        const response = await fetchDiyanet(districtUrl);
+        const html = await response.text();
+        writeDataCache(cacheKey, html);
+        return parseDiyanetBayramTime(html);
+    } catch (error) {
+        const cached = readDataCache(cacheKey);
+        if (cached) return parseDiyanetBayramTime(cached);
+        return null;
+    }
+}
+
+async function refreshDiyanetEidPrayer() {
+    if (!Array.isArray(state.prayerDays) || state.prayerDays.length === 0) return;
+    const today = startOfToday();
+    const eidDay = state.prayerDays.find(day => {
+        const date = new Date(day.MiladiTarihUzunIso8601);
+        return isEidPrayerDay(day) && date >= today;
+    });
+    if (!eidDay) {
+        state.eidDiyanet = null;
+        return;
+    }
+
+    const districtId = state.selected.districtId;
+    const dateKey = normalizeDateKey(eidDay.MiladiTarihKisa);
+    if (state.eidDiyanet
+        && state.eidDiyanet.districtId === districtId
+        && state.eidDiyanet.dateKey === dateKey
+        && state.eidDiyanet.time) {
+        return;
+    }
+
+    try {
+        const resolved = await resolveDiyanetDistrict(state.selected.cityName, state.selected.districtName);
+        if (!resolved) return;
+        const bayram = await fetchDiyanetBayram(resolved.url || `tr-TR/${resolved.id}`);
+        if (!bayram || !bayram.time) return;
+        state.eidDiyanet = {
+            districtId,
+            dateKey,
+            time: bayram.time,
+            type: bayram.type
+        };
+        renderEidPrayerInfo();
+    } catch (error) {
+        console.warn('Diyanet bayram saati alınamadı', error);
+    }
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -1642,9 +1825,7 @@ function overpassRegex(value) {
 
 function buildOsmMosqueSelectors(scope, regex = OSM_MOSQUE_NAME_REGEX) {
     const filters = OSM_MOSQUE_FILTERS.map(filter => filter.replace('{{regex}}', regex));
-    return ['node', 'way', 'relation']
-        .flatMap(type => filters.map(filter => `${type}${filter}${scope};`))
-        .join('');
+    return filters.map(filter => `nwr${filter}${scope};`).join('');
 }
 
 // New premium helper functions
