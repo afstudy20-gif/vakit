@@ -2,11 +2,20 @@
     "name": "Vakit, Kıble ve En Yakın Cami",
     "short_name": "Vakit",
     "description": "Diyanet kaynaklı namaz vakitleri, 3 saatlik hava tahmini ve yakındaki cami rotaları.",
+    "id": "/vakit-kible-cami-pwa",
+    "categories": ["utilities", "lifestyle", "productivity"],
+    "dir": "ltr",
     "lang": "tr",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
+    "display_override": ["standalone", "fullscreen", "minimal-ui"],
     "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "launch_handler": {
+        "client_mode": "navigate-existing"
+    },
+    "iarc_rating_id": "e10+",
     "background_color": "#030508",
     "theme_color": "#06b6d4",
     "icons": [
