@@ -62,6 +62,33 @@
             "description": "Kâbe yönünü haritada göster"
         }
     ],
+    "widgets": [
+        {
+            "name": "Namaz Vakitleri Widget",
+            "short_name": "Vakitler",
+            "description": "Bugünkü namaz vakitlerini ve sıradaki vakti gösteren widget.",
+            "tag": "prayer-times-widget",
+            "template": "prayer-widget-template",
+            "ms_ac_template": "widget-card.json",
+            "data": "widget-data.json",
+            "type": "application/json",
+            "screenshots": [
+                {
+                    "src": "icons/screenshot-mobile.jpg",
+                    "sizes": "1024x1024",
+                    "type": "image/jpeg",
+                    "label": "Widget Önizleme"
+                }
+            ],
+            "icons": [
+                {
+                    "src": "icons/icon-192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ],
     "screenshots": [
         {
             "src": "icons/screenshot-desktop.jpg",
