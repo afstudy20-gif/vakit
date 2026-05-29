@@ -183,6 +183,13 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW registered successfully:', reg.scope))
+                .catch(err => console.warn('SW registration failed:', err));
+        }
+    </script>
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="mosques.js?v=40"></script>
     <script src="app.js?v=40"></script>

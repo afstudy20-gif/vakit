@@ -1,10 +1,3 @@
-// Register Service Worker instantly for fast PWA/PWABuilder compliance
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('SW registered successfully:', reg.scope))
-        .catch(err => console.warn('SW registration failed:', err));
-}
-
 const PRAYER_API = 'https://ezanvakti.emushaf.net';
 const COUNTRY_ID = '2';
 const DIYANET_PROXY = '/diyanet/';
