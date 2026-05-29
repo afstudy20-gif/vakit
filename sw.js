@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vakit-cami-v39';
+const CACHE_NAME = 'vakit-cami-v40';
 const APP_SHELL = [
     './',
     './index.html',
@@ -12,6 +12,8 @@ const APP_SHELL = [
     './icons/icon-192-maskable.png',
     './icons/icon-512-maskable.png',
     './icons/icon-apple-180.png',
+    './icons/screenshot-desktop.jpg',
+    './icons/screenshot-mobile.jpg',
     './vendor/leaflet/leaflet.css',
     './vendor/leaflet/leaflet.js',
     './vendor/leaflet/images/marker-icon.png',
@@ -36,20 +38,50 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-    const url = new URL(event.request.url);
-
     if (event.request.method !== 'GET') return;
+
+    const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return;
 
+    // Network-First with Cache-Fallback for page navigation
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    if (response.ok) {
+                        const copy = response.clone();
+                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    return caches.match('./index.html') || caches.match('./') || caches.match(event.request);
+                })
+        );
+        return;
+    }
+
+    // Stale-While-Revalidate for static assets
     event.respondWith(
-        fetch(event.request)
-            .then(response => {
-                if (response.ok) {
-                    const copy = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        caches.match(event.request)
+            .then(cachedResponse => {
+                if (cachedResponse) {
+                    fetch(event.request).then(networkResponse => {
+                        if (networkResponse.ok) {
+                            caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse));
+                        }
+                    }).catch(() => {});
+                    return cachedResponse;
                 }
-                return response;
+
+                return fetch(event.request)
+                    .then(networkResponse => {
+                        if (networkResponse.ok) {
+                            const copy = networkResponse.clone();
+                            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+                        }
+                        return networkResponse;
+                    });
             })
-            .catch(() => caches.match(event.request))
     );
 });

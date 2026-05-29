@@ -64,16 +64,16 @@
     ],
     "screenshots": [
         {
-            "src": "icons/screenshot-desktop.png",
+            "src": "icons/screenshot-desktop.jpg",
             "sizes": "1024x1024",
-            "type": "image/png",
+            "type": "image/jpeg",
             "form_factor": "wide",
             "label": "Gelişmiş Vakit, Kıble ve Cami Arama Paneli"
         },
         {
-            "src": "icons/screenshot-mobile.png",
+            "src": "icons/screenshot-mobile.jpg",
             "sizes": "1024x1024",
-            "type": "image/png",
+            "type": "image/jpeg",
             "form_factor": "narrow",
             "label": "Mobil Ezan Vakti ve Kıble Pusulası"
         }
