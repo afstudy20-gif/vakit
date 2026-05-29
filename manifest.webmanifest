@@ -61,5 +61,21 @@
             "url": "./#qiblaPanel",
             "description": "Kâbe yönünü haritada göster"
         }
+    ],
+    "screenshots": [
+        {
+            "src": "icons/screenshot-desktop.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Gelişmiş Vakit, Kıble ve Cami Arama Paneli"
+        },
+        {
+            "src": "icons/screenshot-mobile.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Mobil Ezan Vakti ve Kıble Pusulası"
+        }
     ]
 }
