@@ -1276,6 +1276,16 @@ select:disabled {
     }
 }
 
+/* Disable transitions during active sensor usage to prevent lag and jitter */
+.qibla-layout.sensor-active #qiblaMap,
+.qibla-layout.sensor-active .qibla-direction-overlay,
+.qibla-layout.sensor-active .qibla-dir-label,
+.qibla-layout.sensor-active .compass-rose,
+.qibla-layout.sensor-active .compass-label,
+.qibla-layout.sensor-active .qibla-arrow {
+    transition: none !important;
+}
+
 .compass-rose {
     position: absolute;
     top: 0;

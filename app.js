@@ -170,6 +170,7 @@ function cacheDom() {
     el.compassRose = document.getElementById('compassRose');
     el.qiblaCompassDial = document.getElementById('qiblaCompassDial');
     el.syncPrayersBtn = document.getElementById('syncPrayersBtn');
+    el.qiblaLayout = document.querySelector('.qibla-layout');
 }
 
 function bindEvents() {
@@ -2016,9 +2017,16 @@ function startAutoCompass() {
 }
 
 function startCompassListener() {
-    window.addEventListener('deviceorientation', handleOrientation, true);
+    if ('ondeviceorientationabsolute' in window) {
+        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    } else {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+    }
     state.compassActive = true;
     state.lastHeading = null;
+    if (el.qiblaLayout) {
+        el.qiblaLayout.classList.add('sensor-active');
+    }
     if (el.autoCompassBtn) {
         el.autoCompassBtn.classList.add('active');
         el.autoCompassBtn.innerHTML = '🧭 Pusula Açık';
@@ -2027,13 +2035,54 @@ function startCompassListener() {
 }
 
 function stopAutoCompass() {
+    window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
     window.removeEventListener('deviceorientation', handleOrientation, true);
     state.compassActive = false;
     state.lastHeading = null;
+    if (el.qiblaLayout) {
+        el.qiblaLayout.classList.remove('sensor-active');
+    }
     if (el.autoCompassBtn) {
         el.autoCompassBtn.classList.remove('active');
         el.autoCompassBtn.innerHTML = '🧭 Pusula Modu';
     }
+}
+
+function calculateHeading(alpha, beta, gamma) {
+    if (alpha === null || beta === null || gamma === null) return null;
+
+    // Check if flat (tilted by less than 5 degrees)
+    if (Math.abs(beta) < 5 && Math.abs(gamma) < 5) {
+        return (360 - alpha) % 360;
+    }
+
+    const degtorad = Math.PI / 180;
+    const alphaRad = alpha * degtorad;
+    const betaRad = beta * degtorad;
+    const gammaRad = gamma * degtorad;
+
+    const cA = Math.cos(alphaRad);
+    const sA = Math.sin(alphaRad);
+    const cB = Math.cos(betaRad);
+    const sB = Math.sin(betaRad);
+    const cG = Math.cos(gammaRad);
+    const sG = Math.sin(gammaRad);
+
+    const rA = -cA * sG - sA * sB * cG;
+    const rB = -sA * sG + cA * sB * cG;
+
+    // If components are extremely close to zero, fallback to simple alpha orientation
+    if (Math.abs(rA) < 0.0001 && Math.abs(rB) < 0.0001) {
+        return (360 - alpha) % 360;
+    }
+
+    let compassHeading = Math.atan2(rA, rB);
+
+    // Convert radian heading to degrees in 0-360 range
+    let heading = compassHeading * (180 / Math.PI);
+    heading = (heading + 360) % 360;
+
+    return heading;
 }
 
 function handleOrientation(event) {
@@ -2041,15 +2090,14 @@ function handleOrientation(event) {
 
     let heading = null;
     // webkitCompassHeading is the most accurate sensor on iOS
-    if (event.webkitCompassHeading !== undefined) {
+    if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
         heading = event.webkitCompassHeading;
-    } else if (event.alpha !== null) {
-        // alpha on Android is counter-clockwise, convert to clockwise heading
-        heading = (360 - event.alpha) % 360;
+    } else {
+        heading = calculateHeading(event.alpha, event.beta, event.gamma);
     }
 
     if (heading !== null) {
-        // Smooth the heading changes using simple low-pass filter (25% interpolation)
+        // Smooth the heading changes using simple low-pass filter (15% interpolation for smooth pointer)
         if (state.lastHeading === null) {
             state.lastHeading = heading;
         } else {
@@ -2057,7 +2105,7 @@ function handleOrientation(event) {
             // Handle 359 -> 0 wrap-around
             if (diff > 180) diff -= 360;
             if (diff < -180) diff += 360;
-            state.lastHeading += diff * 0.25;
+            state.lastHeading += diff * 0.15;
             state.lastHeading = (state.lastHeading + 360) % 360;
         }
 
