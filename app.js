@@ -207,7 +207,7 @@ function bindEvents() {
     el.themeToggleBtn.addEventListener('click', toggleTheme);
     el.installBtn.addEventListener('click', installPwa);
     el.turkeySearchBtn.addEventListener('click', searchTurkeyMosques);
-    el.nearbySearchBtn.addEventListener('click', useCurrentLocation);
+    el.nearbySearchBtn.addEventListener('click', loadNearbyMosques);
     el.turkeySearchInput.addEventListener('keydown', event => {
         if (event.key === 'Enter') searchTurkeyMosques();
     });
@@ -465,23 +465,26 @@ async function applyManualSelection() {
 async function useCurrentLocation() {
     const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    if (!navigator.geolocation) {
-        if (!isSecure) {
-            showToast('Modern tarayıcılar (ve iOS) konum servislerini yalnızca güvenli (HTTPS) bağlantılarda destekler. Lütfen siteye HTTPS ile bağlandığınızdan emin olun.', 8000);
-        } else {
-            showToast('Tarayıcınız konum özelliğini desteklemiyor. İl ve ilçe seçerek devam edebilirsiniz.');
-        }
+    if (!isSecure) {
+        showToast('Modern tarayıcılar (ve iOS) konum servislerini yalnızca güvenli (HTTPS) bağlantılarda destekler. Lütfen siteye HTTPS ile bağlandığınızdan emin olun.', 8000);
+        openGeoModal();
         return;
     }
 
-    setStatus('Konum bekleniyor');
+    if (!navigator.geolocation) {
+        showToast('Tarayıcınız konum özelliğini desteklemiyor. İl ve ilçe seçerek devam edebilirsiniz.');
+        return;
+    }
+
+    setGeoButtonsLoading(true);
+    setStatus('Konum izni bekleniyor');
 
     const handleGeoError = (error) => {
         console.error('Geolocation error:', error);
         
         if (error && error.code === error.PERMISSION_DENIED) {
             openGeoModal();
-            setStatus('Elle seçim hazır');
+            setStatus('Konum izni engelli');
             return;
         }
 
@@ -497,68 +500,77 @@ async function useCurrentLocation() {
         setStatus('Elle seçim hazır');
     };
 
-    const tryGeo = (highAccuracy = true) => {
-        return new Promise((resolve, reject) => {
-            let watchId = null;
-            
-            // Cold-start warm-up timeout for iOS Safari GPS hardware
-            const timeoutId = setTimeout(() => {
-                if (watchId !== null) {
-                    navigator.geolocation.clearWatch(watchId);
-                }
-                reject({ code: 3, message: 'Timeout' });
-            }, highAccuracy ? 14000 : 18000);
-
-            watchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    clearTimeout(timeoutId);
-                    navigator.geolocation.clearWatch(watchId);
-                    resolve(position);
-                },
-                (error) => {
-                    clearTimeout(timeoutId);
-                    navigator.geolocation.clearWatch(watchId);
-                    reject(error);
-                },
-                {
-                    enableHighAccuracy: highAccuracy,
-                    timeout: highAccuracy ? 12000 : 15000,
-                    maximumAge: 0 // Force fresh reading, bypass iOS stale cache
-                }
-            );
-        });
-    };
-
     try {
-        const position = await tryGeo(true);
-        state.coords = {
-            lat: position.coords.latitude,
-            lon: position.coords.longitude
-        };
-        await matchLocationToDistrict();
-        saveLocation();
-        updateLocationSummary('Canlı konum');
-        await updateAll();
+        const permissionState = await getGeolocationPermissionState();
+        if (permissionState === 'denied') {
+            openGeoModal();
+            setStatus('Konum izni engelli');
+            return;
+        }
+
+        const position = await requestGeolocationOnce(true);
+        await applyGeolocationPosition(position);
     } catch (error) {
         if (error && (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT)) {
             setStatus('Konum aranıyor (Düşük güç)');
             try {
-                const position = await tryGeo(false);
-                state.coords = {
-                    lat: position.coords.latitude,
-                    lon: position.coords.longitude
-                };
-                await matchLocationToDistrict();
-                saveLocation();
-                updateLocationSummary('Canlı konum');
-                await updateAll();
+                const position = await requestGeolocationOnce(false);
+                await applyGeolocationPosition(position);
             } catch (retryError) {
                 handleGeoError(retryError);
             }
         } else {
             handleGeoError(error);
         }
+    } finally {
+        setGeoButtonsLoading(false);
     }
+}
+
+async function getGeolocationPermissionState() {
+    if (!navigator.permissions || !navigator.permissions.query) return null;
+
+    try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        return permission.state;
+    } catch (error) {
+        return null;
+    }
+}
+
+function requestGeolocationOnce(highAccuracy = true) {
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+            resolve,
+            reject,
+            {
+                enableHighAccuracy: highAccuracy,
+                timeout: highAccuracy ? 15000 : 12000,
+                maximumAge: highAccuracy ? 0 : 60000
+            }
+        );
+    });
+}
+
+async function applyGeolocationPosition(position) {
+    state.coords = {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude
+    };
+    updateUserMarker();
+    renderQibla();
+    await matchLocationToDistrict();
+    saveLocation();
+    updateLocationSummary('Canlı konum');
+    await updateAll();
+    showToast('Konum güncellendi.');
+}
+
+function setGeoButtonsLoading(isLoading) {
+    [el.geoBtn, el.qiblaGeoBtn].filter(Boolean).forEach(button => {
+        button.disabled = isLoading;
+        button.classList.toggle('loading', isLoading);
+    });
 }
 
 async function matchLocationToDistrict() {
