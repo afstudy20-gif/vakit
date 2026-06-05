@@ -171,6 +171,13 @@ function cacheDom() {
     el.qiblaCompassDial = document.getElementById('qiblaCompassDial');
     el.syncPrayersBtn = document.getElementById('syncPrayersBtn');
     el.qiblaLayout = document.querySelector('.qibla-layout');
+
+    // Geolocation modal controls
+    el.geoModalBackdrop = document.getElementById('geoModalBackdrop');
+    el.closeGeoModalBtn = document.getElementById('closeGeoModalBtn');
+    el.confirmGeoModalBtn = document.getElementById('confirmGeoModalBtn');
+    el.geoTabButtons = [...document.querySelectorAll('[data-geo-tab]')];
+    el.geoTabContents = [...document.querySelectorAll('.modal-tab-content')];
 }
 
 function bindEvents() {
@@ -275,6 +282,61 @@ function bindEvents() {
     if (el.syncPrayersBtn) {
         el.syncPrayersBtn.addEventListener('click', forceUpdatePrayerTimes);
     }
+
+    if (el.closeGeoModalBtn) {
+        el.closeGeoModalBtn.addEventListener('click', closeGeoModal);
+    }
+    if (el.confirmGeoModalBtn) {
+        el.confirmGeoModalBtn.addEventListener('click', () => {
+            closeGeoModal();
+            location.reload();
+        });
+    }
+    if (el.geoModalBackdrop) {
+        el.geoModalBackdrop.addEventListener('click', (e) => {
+            if (e.target === el.geoModalBackdrop) {
+                closeGeoModal();
+            }
+        });
+    }
+    el.geoTabButtons.forEach(button => {
+        button.addEventListener('click', () => setGeoModalTab(button.dataset.geoTab));
+    });
+}
+
+function openGeoModal() {
+    if (!el.geoModalBackdrop) return;
+    
+    // Auto-detect browser/OS to select the best default tab
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
+    let defaultTab = 'desktop';
+    if (isIOS) {
+        defaultTab = 'ios';
+    } else if (isAndroid) {
+        defaultTab = 'android';
+    }
+    
+    setGeoModalTab(defaultTab);
+    el.geoModalBackdrop.removeAttribute('hidden');
+}
+
+function closeGeoModal() {
+    if (el.geoModalBackdrop) {
+        el.geoModalBackdrop.setAttribute('hidden', '');
+    }
+}
+
+function setGeoModalTab(tab) {
+    el.geoTabButtons.forEach(button => button.classList.toggle('active', button.dataset.geoTab === tab));
+    el.geoTabContents.forEach(content => {
+        if (content.id === `geoTab-${tab}`) {
+            content.removeAttribute('hidden');
+        } else {
+            content.setAttribute('hidden', '');
+        }
+    });
 }
 
 function initMap() {
@@ -416,17 +478,16 @@ async function useCurrentLocation() {
 
     const handleGeoError = (error) => {
         console.error('Geolocation error:', error);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        if (error && error.code === error.PERMISSION_DENIED) {
+            openGeoModal();
+            setStatus('Elle seçim hazır');
+            return;
+        }
 
         let errMsg = 'Konum alınamadı. İl ve ilçe seçebilirsiniz.';
         if (error) {
-            if (error.code === error.PERMISSION_DENIED) {
-                if (isIOS) {
-                    errMsg = 'iOS konum izni kapalı veya reddedildi. Adres çubuğundaki "Aa" simgesine tıklayıp "Web Sitesi Ayarları" -> "Konum" -> "İzin Ver" yapın ya da Ayarlar > Gizlilik ve Güvenlik > Konum Servisleri altından Safari/Tarayıcınıza ve siteye izin verildiğinden emin olun.';
-                } else {
-                    errMsg = 'Konum izni reddedildi. Tarayıcınızın adres çubuğundaki kilit simgesine dokunarak konum iznini sıfırlayabilirsiniz.';
-                }
-            } else if (error.code === error.POSITION_UNAVAILABLE) {
+            if (error.code === error.POSITION_UNAVAILABLE) {
                 errMsg = 'Konum bilgisi alınamadı (GPS kapalı veya sinyal zayıf). Lütfen konum servislerini açın.';
             } else if (error.code === error.TIMEOUT) {
                 errMsg = 'Konum bulma zaman aşımına uğradı. Lütfen tekrar deneyin.';

@@ -181,6 +181,63 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="geoModalBackdrop" hidden>
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Konum İzni Nasıl Açılır?</h3>
+                <button class="modal-close-btn" id="closeGeoModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-intro">Tarayıcınızda bu site için konum izni engellenmiş. Canlı konumunuzu bulabilmek için lütfen aşağıdaki adımları takip ederek izni etkinleştirin:</p>
+                
+                <div class="modal-tabs">
+                    <button class="tab-btn active" data-geo-tab="ios" type="button">iOS Safari</button>
+                    <button class="tab-btn" data-geo-tab="android" type="button">Android Chrome</button>
+                    <button class="tab-btn" data-geo-tab="desktop" type="button">Masaüstü Chrome</button>
+                </div>
+                
+                <!-- iOS Safari -->
+                <div class="modal-tab-content" id="geoTab-ios">
+                    <ol class="guide-steps">
+                        <li>Adres çubuğunun solundaki <strong>Aa</strong> (veya web sitesi ayarları) simgesine dokunun.</li>
+                        <li><strong>Web Sitesi Ayarları</strong> seçeneğini seçin.</li>
+                        <li><strong>Konum</strong> seçeneğine tıklayın ve <strong>İzin Ver</strong> yapın.</li>
+                        <li>Sayfayı yenileyip tekrar <strong>Konumu Yenile</strong> butonuna basın.</li>
+                    </ol>
+                    <div class="guide-note">
+                        <strong>Not:</strong> Eğer seçenek çıkmıyorsa, iPhone/iPad'inizde <strong>Ayarlar > Gizlilik ve Güvenlik > Konum Servisleri</strong> altında <strong>Safari Siteleri</strong> için konum erişiminin etkin olduğundan emin olun.
+                    </div>
+                </div>
+                
+                <!-- Android Chrome -->
+                <div class="modal-tab-content" id="geoTab-android" hidden>
+                    <ol class="guide-steps">
+                        <li>Adres çubuğunun solundaki kilit veya <strong>ayar</strong> simgesine dokunun.</li>
+                        <li>Açılan menüde <strong>İzinler</strong> veya <strong>Site Ayarları</strong> kısmına girin.</li>
+                        <li><strong>Konum</strong> seçeneğini bulun ve <strong>İzin Ver</strong> (veya engellenen izni sıfırlayın) seçeneğini seçin.</li>
+                        <li>Sayfayı yenileyip tekrar <strong>Konumu Yenile</strong> butonuna basın.</li>
+                    </ol>
+                    <div class="guide-note">
+                        <strong>Not:</strong> Android cihazınızda <strong>Ayarlar > Uygulamalar > Chrome > İzinler > Konum</strong> seçeneğinin "Her zaman" veya "Uygulama kullanılırken" olarak ayarlandığından emin olun.
+                    </div>
+                </div>
+                
+                <!-- Desktop Chrome -->
+                <div class="modal-tab-content" id="geoTab-desktop" hidden>
+                    <ol class="guide-steps">
+                        <li>Adres çubuğundaki kilit 🔒 veya <strong>Site Bilgilerini Görüntüle</strong> (ayar) simgesine tıklayın.</li>
+                        <li>Açılan pencerede <strong>Konum</strong> seçeneğinin yanındaki menüden <strong>İzin Ver</strong> olarak değiştirin.</li>
+                        <li>Eğer burada görünmüyorsa, <strong>Site Ayarları</strong> seçeneğine tıklayıp oradan <strong>Konum</strong> iznini bulun ve izin verin.</li>
+                        <li>Sekmeye geri dönüp sayfayı yenileyin.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="primary-button" id="confirmGeoModalBtn" type="button">Anladım, Sayfayı Yenile</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
@@ -191,7 +248,7 @@
         }
     </script>
     <script src="vendor/leaflet/leaflet.js"></script>
-    <script src="mosques.js?v=42"></script>
-    <script src="app.js?v=42"></script>
+    <script src="mosques.js?v=43"></script>
+    <script src="app.js?v=43"></script>
 </body>
 </html>
